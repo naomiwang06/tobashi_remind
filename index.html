@@ -33,6 +33,10 @@ body{background:var(--bg0);min-height:100vh;display:flex;justify-content:center}
 .bnav{display:flex;border-top:1px solid var(--bd);background:var(--bg2);padding:6px 0 14px;flex-shrink:0}
 .nb{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10px;color:var(--t2);cursor:pointer;padding:4px 0;background:transparent;border:none}
 .bnav6 .nb{font-size:9.5px}
+.bnav7 .nb{font-size:9px;gap:1px}
+.bnav7 .nb span{font-size:17px!important}
+.qa-btn{flex:1;min-width:56px;padding:7px 4px;border-radius:8px;border:1.5px solid var(--bd);background:var(--bg2);color:var(--t1);font-size:12px;cursor:pointer;font-family:monospace;font-weight:600}
+.qa-btn:active{background:#fff3cd;border-color:#f9a825}
 .nb.on{color:var(--accent)}
 .nb.on i{color:var(--accent)}
 .nb i{font-size:20px;color:var(--t2)}
@@ -303,6 +307,55 @@ select option{background:var(--bg2);color:var(--t0)}
     <div style="height:8px"></div>
   </div>
 
+  <!-- GOLD VAULT TAB -->
+  <div id="pt-vault" class="sa" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <span class="sl">🪙 金鼠庫</span>
+      <button onclick="openModal('addincome')" style="font-size:10px;color:#c8860a;font-weight:600;background:#fff3cd;border:none;border-radius:99px;padding:3px 10px;cursor:pointer">＋ 記一筆接案</button>
+    </div>
+
+    <!-- energy bottle + marmot warrior canvas -->
+    <div style="background:linear-gradient(180deg,#2a2440,#1a1730);border:3px solid #3d3559;border-radius:16px;padding:16px 12px 12px;box-shadow:var(--shadow);position:relative;overflow:hidden">
+      <div style="position:absolute;inset:0;background-image:radial-gradient(circle at 20% 30%,rgba(255,220,150,.06) 1px,transparent 1px),radial-gradient(circle at 70% 60%,rgba(255,220,150,.05) 1px,transparent 1px);background-size:24px 24px,32px 32px;pointer-events:none"></div>
+      <canvas id="vault-canvas" width="320" height="360" style="width:100%;max-width:320px;display:block;margin:0 auto;image-rendering:pixelated"></canvas>
+      <div style="text-align:center;margin-top:8px;position:relative">
+        <div style="font-family:monospace;font-size:11px;color:#f9c784;letter-spacing:1px" id="vault-status">LOADING...</div>
+      </div>
+    </div>
+
+    <!-- amount display -->
+    <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:14px;padding:14px;text-align:center;box-shadow:var(--shadow)">
+      <div style="font-size:11px;color:var(--t2);margin-bottom:4px">目前能量（本月接案收入）</div>
+      <div style="font-family:monospace;font-size:30px;font-weight:700;color:#c8860a" id="vault-amount">$0</div>
+      <div style="font-size:11px;color:var(--t2);margin-top:4px" id="vault-next"></div>
+      <div style="margin-top:10px;height:14px;background:#2a2440;border-radius:99px;overflow:hidden;border:2px solid #3d3559;position:relative">
+        <div id="vault-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#f9a825,#f9c784);border-radius:99px;transition:width .8s cubic-bezier(.34,1.56,.64,1)"></div>
+      </div>
+    </div>
+
+    <!-- unemployment aid base -->
+    <div style="background:#eef7f0;border:1px solid #b8e0c4;border-radius:12px;padding:11px 13px;display:flex;align-items:center;gap:10px">
+      <span style="font-size:22px">🛡️</span>
+      <div style="flex:1">
+        <div style="font-size:12px;font-weight:600;color:#3d7a52">失業補助保底</div>
+        <div style="font-size:11px;color:#5a9070;margin-top:2px" id="aid-status">每月 $20,000 基底 · 剩 6 個月</div>
+      </div>
+    </div>
+
+    <!-- milestones -->
+    <span class="sl">里程碑</span>
+    <div class="card" style="padding:10px 13px" id="vault-milestones"></div>
+
+    <!-- income history -->
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <span class="sl">接案紀錄</span>
+      <span id="income-total" style="font-size:11px;color:var(--t2)"></span>
+    </div>
+    <div class="card" style="padding:8px 13px" id="income-list"></div>
+    <button class="addrow" onclick="openModal('addincome')">＋ 記一筆接案收入</button>
+    <div style="height:8px"></div>
+  </div>
+
   <!-- GOALS TAB -->
   <div id="pt-gl" class="sa" style="display:none">
     <div style="display:flex;align-items:center;justify-content:space-between">
@@ -374,13 +427,14 @@ select option{background:var(--bg2);color:var(--t0)}
     <div style="height:8px"></div>
   </div>
 
-  <div class="bnav bnav6">
-    <button class="nb on" id="nb-rm" onclick="pTab('rm')"><span style="font-size:19px">🔔</span>提醒</button>
-    <button class="nb" id="nb-bl" onclick="pTab('bl')"><span style="font-size:19px">🎬</span>待剪</button>
-    <button class="nb" id="nb-td" onclick="pTab('td')"><span style="font-size:19px">📝</span>待辦</button>
-    <button class="nb" id="nb-cal" onclick="pTab('cal')"><span style="font-size:19px">📅</span>行事曆</button>
-    <button class="nb" id="nb-gl" onclick="pTab('gl')"><span style="font-size:19px">🎯</span>目標</button>
-    <button class="nb" id="nb-ac" onclick="pTab('ac')"><span style="font-size:19px">🏆</span>成就</button>
+  <div class="bnav bnav7">
+    <button class="nb on" id="nb-rm" onclick="pTab('rm')"><span style="font-size:18px">🔔</span>提醒</button>
+    <button class="nb" id="nb-bl" onclick="pTab('bl')"><span style="font-size:18px">🎬</span>待剪</button>
+    <button class="nb" id="nb-td" onclick="pTab('td')"><span style="font-size:18px">📝</span>待辦</button>
+    <button class="nb" id="nb-cal" onclick="pTab('cal')"><span style="font-size:18px">📅</span>行事曆</button>
+    <button class="nb" id="nb-vault" onclick="pTab('vault')"><span style="font-size:18px">🪙</span>金鼠庫</button>
+    <button class="nb" id="nb-gl" onclick="pTab('gl')"><span style="font-size:18px">🎯</span>目標</button>
+    <button class="nb" id="nb-ac" onclick="pTab('ac')"><span style="font-size:18px">🏆</span>成就</button>
   </div>
 </div>
 
@@ -620,6 +674,46 @@ select option{background:var(--bg2);color:var(--t0)}
     <div class="cancelbtn" onclick="closeModal('m-addtdevent')">取消</div>
   </div>
 </div>
+
+<!-- ADD INCOME MODAL -->
+<div class="moverlay" id="m-addincome">
+  <div class="mbox">
+    <h3>🪙 記一筆接案收入</h3>
+    <div class="fr"><label>案子名稱</label><input id="income-name" placeholder="例：王家婚禮精剪"/></div>
+    <div class="fr"><label>金額（元）</label><input id="income-amount" type="number" inputmode="numeric" placeholder="例：8000"/></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px">
+      <button onclick="quickAmount(3000)" class="qa-btn">3000</button>
+      <button onclick="quickAmount(5000)" class="qa-btn">5000</button>
+      <button onclick="quickAmount(8000)" class="qa-btn">8000</button>
+      <button onclick="quickAmount(10000)" class="qa-btn">10000</button>
+      <button onclick="quickAmount(15000)" class="qa-btn">15000</button>
+    </div>
+    <button class="savebtn" onclick="saveIncome()" style="background:#f9a825;color:#3d2b1f">存進金鼠庫 🪙</button>
+    <div class="cancelbtn" onclick="closeModal('m-addincome')">取消</div>
+  </div>
+</div>
+
+<!-- MILESTONE CELEBRATE MODAL -->
+<div class="cele" id="vault-cele">
+  <div class="celebox" style="background:linear-gradient(180deg,#2a2440,#1a1730);border:3px solid #f9c784">
+    <canvas id="cele-canvas" width="200" height="200" style="width:200px;height:200px;image-rendering:pixelated;margin-bottom:8px"></canvas>
+    <div style="font-family:monospace;font-size:20px;font-weight:700;color:#f9c784;margin-bottom:8px" id="vc-title">LEVEL UP!</div>
+    <div style="font-size:14px;color:#fde8df;line-height:1.8;margin-bottom:22px" id="vc-msg"></div>
+    <button onclick="closeVaultCele()" style="background:#f9a825;color:#3d2b1f;border:none;border-radius:99px;padding:13px 36px;font-size:15px;cursor:pointer;font-weight:700;box-shadow:0 4px 16px rgba(249,168,37,.5)">太棒了！🎉</button>
+  </div>
+</div>
+
+<!-- SMALL 5000 REWARD (小鼠開心跳+金幣) -->
+<div id="small-reward" style="display:none;position:fixed;inset:0;z-index:45;align-items:center;justify-content:center;pointer-events:none">
+  <div style="background:linear-gradient(180deg,#2a2440,#1a1730);border:2px solid #f9c045;border-radius:20px;padding:18px 22px;text-align:center;box-shadow:0 8px 32px rgba(249,168,37,.4);animation:popIn .4s cubic-bezier(.34,1.56,.64,1)">
+    <canvas id="small-canvas" width="120" height="120" style="width:120px;height:120px;image-rendering:pixelated"></canvas>
+    <div style="font-family:monospace;font-size:15px;font-weight:700;color:#f9c045;margin-top:4px" id="sr-amount">+$5,000</div>
+    <div style="font-size:12px;color:#fde8df;margin-top:2px" id="sr-msg">又存了一筆！鼠鼠好開心 🐭</div>
+  </div>
+</div>
+
+<!-- COIN TOAST (小額提示) -->
+<div id="coin-toast" style="display:none;position:fixed;top:30px;left:50%;transform:translateX(-50%);z-index:45;background:#2a2440;border:2px solid #f9c045;border-radius:99px;padding:8px 18px;font-family:monospace;font-size:14px;font-weight:700;color:#f9c045;box-shadow:0 4px 16px rgba(249,168,37,.3);pointer-events:none"></div>
 
 <!-- EDIT TODO EVENT MODAL -->
 <div class="moverlay" id="m-edittd">
@@ -910,11 +1004,12 @@ onAuthStateChanged(auth, async (user) => {
         const activeScreen = document.querySelector('.screen.active');
         if(!activeScreen) return;
         if(activeScreen.id==='s-patient'){
-          const t=['rm','bl','td','cal','gl','ac'].find(t=>document.getElementById('pt-'+t)&&document.getElementById('pt-'+t).style.display!=='none');
+          const t=['rm','bl','td','cal','vault','gl','ac'].find(t=>document.getElementById('pt-'+t)&&document.getElementById('pt-'+t).style.display!=='none');
           if(t==='rm') window.renderReminders();
           else if(t==='cal'){window.buildCal();window.renderDay();}
           else if(t==='bl') window.renderBacklog();
           else if(t==='td') window.renderTodoEvents();
+          else if(t==='vault') window.renderVault();
           else if(t==='gl') window.renderGoals();
           else if(t==='ac') window.renderAchieve();
         }
@@ -969,7 +1064,7 @@ window.DEFAULT_STATE = {
     {id:'r3', title:'睡前量血壓', time:'21:00', repeat:'daily', done:false},
   ],
   todaySmall: [], smallDone: {}, smallDoneToday: [], todos: [],
-  calData: {}, goals: [], backlog: [], todoEvents: [], streak: 0, totalDone: 0,
+  calData: {}, goals: [], backlog: [], todoEvents: [], vault: {income:[], milestonesSeen:[], startMonth:null}, streak: 0, totalDone: 0,
 };
 
 // ── sanitize STATE — fill missing fields with defaults ─────────────
@@ -987,6 +1082,9 @@ function sanitizeState(s) {
   if(!s.earnedMonth) s.earnedMonth = [];
   if(!s.backlog) s.backlog = [];
   if(!s.todoEvents) s.todoEvents = [];
+  if(!s.vault) s.vault = {income:[], milestonesSeen:[], startMonth:null};
+  if(!s.vault.income) s.vault.income = [];
+  if(!s.vault.milestonesSeen) s.vault.milestonesSeen = [];
   if(typeof s.totalDone !== 'number') s.totalDone = 0;
   if(typeof s.streak !== 'number') s.streak = 0;
   // clean up legacy numeric calData keys (22, 23, etc.) — move to string keys
@@ -1124,11 +1222,13 @@ function enterRole(role){
 let selIcon = '💒', schedItem = null;
 
 function pTab(t){
-  ['rm','bl','td','cal','gl','ac'].forEach(x=>{
+  // stop vault animation when leaving vault
+  if(t!=='vault' && typeof stopVaultAnim==='function') stopVaultAnim();
+  ['rm','bl','td','cal','vault','gl','ac'].forEach(x=>{
     document.getElementById('pt-'+x).style.display=x===t?'flex':'none';
     document.getElementById('nb-'+x).classList.toggle('on',x===t);
   });
-  const T={rm:'提醒',bl:'待剪清單',td:'待辦事件',cal:'行事曆',gl:'長期目標',ac:'我的成就'};
+  const T={rm:'提醒',bl:'待剪清單',td:'待辦事件',cal:'行事曆',vault:'金鼠庫',gl:'長期目標',ac:'我的成就'};
   document.getElementById('ptitle').textContent=T[t];
   // render after display change is applied
   requestAnimationFrame(()=>{
@@ -1136,6 +1236,7 @@ function pTab(t){
     else if(t==='bl') renderBacklog();
     else if(t==='td') renderTodoEvents();
     else if(t==='cal'){buildCal();renderDay();}
+    else if(t==='vault') renderVault();
     else if(t==='gl') renderGoals();
     else if(t==='ac') renderAchieve();
   });
@@ -1315,6 +1416,526 @@ function todoEventsOnDate(y,m,d){
     else return false;
     return ty===y && tm===(m+1) && td===d;
   });
+}
+
+// ══════════════════════════════════════════════════════════════════
+// ── GOLD VAULT (金鼠庫) ────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════
+const VAULT_MAX = 50000;
+const MILESTONES = [
+  {amount:5000,  title:'第一桶金！',   msg:'接到案子了！離自由鼠越來越近囉 🐭', color:'#f9c784'},
+  {amount:10000, title:'一萬達成！',   msg:'穩穩的！離自由鼠越來越近囉 ✨',    color:'#f9b74e'},
+  {amount:20000, title:'兩萬達成！',   msg:'這個月成功活下來了！鼠鼠好棒 🎉',  color:'#f9a825'},
+  {amount:30000, title:'三萬達成！',   msg:'越來越接近有工作時的鼠了！💪',     color:'#f0951a'},
+  {amount:40000, title:'四萬達成！',   msg:'你可以養活自己了！媽媽欣慰 🥹',    color:'#e0850a'},
+  {amount:50000, title:'五萬達成！',   msg:'超越正職的自由鼠戰士誕生！👑',     color:'#c8860a'},
+];
+
+function getVaultTotal(){ return window.STATE.vault.income.reduce((a,b)=>a+(b.amount||0),0); }
+function px(ctx,x,y,w,h,color){ ctx.fillStyle=color; ctx.fillRect(x,y,w,h); }
+
+// ── 6 monthly warrior classes, refined pixel art (紅白機風) ─────────
+const WARRIOR_CLASSES = [
+  {id:'hero',   name:'勇者鼠',   color:'#e05c5c'},
+  {id:'ninja',  name:'忍者鼠',   color:'#4a4a6a'},
+  {id:'knight', name:'騎士鼠',   color:'#8a95b0'},
+  {id:'mage',   name:'魔法鼠',   color:'#7c6fcd'},
+  {id:'archer', name:'弓箭鼠',   color:'#5aa870'},
+  {id:'king',   name:'王者鼠',   color:'#f9c045'},
+];
+
+// which class this month (auto-rotate by month index)
+let _classOverride = null;
+let _levelOverride = null;
+function getWarriorClass(){
+  if(_classOverride!==null) return WARRIOR_CLASSES[_classOverride];
+  const m = new Date().getMonth(); // 0-11
+  return WARRIOR_CLASSES[m % 6];
+}
+
+// Draw refined marmot warrior. cls = class object, level 0-6, S = pixel unit
+function drawMarmotWarrior(ctx, cx, cy, level, S, clsOverride, isGold){
+  const cls = clsOverride || getWarriorClass();
+  const P=(x,y,w,h,c)=>px(ctx, Math.round(cx+x*S), Math.round(cy+y*S), Math.ceil(w*S), Math.ceil(h*S), c);
+
+  // ============ GOLDEN LEGENDARY FORM (滿5萬) ============
+  if(isGold){
+    const gold='#f9c045', goldL='#ffe08a', goldD='#c8860a', goldDD='#a06d0a', white='#fff';
+    // aura glow behind
+    const glow=0.5+0.5*Math.sin(Date.now()/300);
+    ctx.save();
+    ctx.globalAlpha=0.15+glow*0.15;
+    for(let r=9;r>5;r--) P(-r,-r-2,r*2,r*2,goldL);
+    ctx.restore();
+    // tail
+    P(4,1,2,3,goldD); P(5,0,1,2,goldDD);
+    // legs + golden boots
+    P(-3,4,2,3,goldD); P(1,4,2,3,goldD);
+    P(-3,6,2,1,goldDD); P(1,6,2,1,goldDD);
+    // body — golden armor
+    P(-3,-1,6,6,gold);
+    P(-3,-1,6,1,goldL);
+    P(-2,1,4,3,goldL); // shining chest
+    P(-1,1,2,1,white); // chest gem shine
+    // arms golden
+    P(-4,0,1,3,goldD); P(3,0,1,3,goldD);
+    // head golden fur
+    P(-3,-6,6,5,gold);
+    P(-3,-6,6,1,goldL);
+    // ears
+    P(-4,-7,2,2,goldD); P(2,-7,2,2,goldD);
+    P(-3,-6,1,1,goldL); P(2,-6,1,1,goldL);
+    // eyes — glowing
+    P(-2,-4,1,2,white); P(1,-4,1,2,white);
+    P(-2,-4,1,1,'#7ce0ff'); P(1,-4,1,1,'#7ce0ff'); // blue glow pupils
+    // determined brows
+    P(-3,-5,2,1,goldDD); P(1,-5,2,1,goldDD);
+    // nose
+    P(0,-2,1,1,goldD);
+    // cheeks glow
+    P(-3,-2,1,1,goldL); P(2,-2,1,1,goldL);
+    // ── GRAND CROWN ──
+    P(-4,-9,8,2,goldL);
+    P(-4,-11,1,2,gold); P(-2,-12,1,3,gold); P(0,-13,1,4,gold); P(2,-12,1,3,gold); P(3,-11,1,2,gold);
+    P(0,-13,1,1,white); // top jewel sparkle
+    P(-4,-9,1,1,'#e05c5c'); P(3,-9,1,1,'#4a90d9'); P(0,-9,1,1,'#e05c5c'); // crown jewels
+    // ── LEGENDARY GOLD SWORD (raised high) ──
+    P(5,-11,2,11,goldL);
+    P(5,-11,1,11,white); // blade shine
+    P(4,-1,4,1,gold); // guard
+    P(5,0,2,3,goldD); // handle
+    P(5,-12,2,1,white); // tip sparkle
+    // ── GOLD CAPE ──
+    P(-5,-1,1,8,gold); P(4,-1,1,8,gold);
+    P(-5,6,2,1,goldD); P(3,6,2,1,goldD);
+    P(-4,-2,1,3,goldL); // cape highlight
+    // sparkles around
+    const spk=Math.floor(Date.now()/200)%4;
+    const spots=[[-7,-8],[6,-9],[-6,4],[7,2]];
+    spots.forEach((s,idx)=>{ if(idx===spk) P(s[0],s[1],1,1,white); });
+    return;
+  }
+
+  // ============ BASE MARMOT (all classes) ============
+  const brown='#c8924a', brownMid='#b07d38', brownD='#8a5f28', belly='#f4c08a', dark='#2b1d12';
+
+  // ============ BASE MARMOT (all classes) ============
+  // tail
+  P(4, 1, 2, 3, brownMid);
+  P(5, 0, 1, 2, brownD);
+  // legs
+  P(-3, 4, 2, 3, brownMid);
+  P(1, 4, 2, 3, brownMid);
+  P(-3, 6, 2, 1, brownD); // feet
+  P(1, 6, 2, 1, brownD);
+  // body
+  P(-3, -1, 6, 6, brown);
+  P(-3, -1, 6, 1, brownMid); // shade top
+  P(-2, 1, 4, 3, belly); // belly
+  // arms
+  P(-4, 0, 1, 3, brownMid);
+  P(3, 0, 1, 3, brownMid);
+  // head
+  P(-3, -6, 6, 5, brown);
+  P(-3, -6, 6, 1, brownMid);
+  // ears
+  P(-4, -7, 2, 2, brownMid);
+  P(2, -7, 2, 2, brownMid);
+  P(-3, -6, 1, 1, '#e8a878');
+  P(2, -6, 1, 1, '#e8a878');
+  // eyes (with determination)
+  P(-2, -4, 1, 2, dark);
+  P(1, -4, 1, 2, dark);
+  P(-2, -4, 1, 1, '#fff'); // eye shine
+  P(1, -4, 1, 1, '#fff');
+  // nose + mouth
+  P(0, -2, 1, 1, '#e07850');
+  P(-1, -1, 3, 1, brownMid);
+  // cheeks
+  P(-3, -2, 1, 1, '#f4a080');
+  P(2, -2, 1, 1, '#f4a080');
+
+  // ============ CLASS-SPECIFIC GEAR (scales with level) ============
+  const c = cls.color;
+
+  if(cls.id==='hero'){
+    // 勇者：武器一級一級變強 木劍→鐵劍→大劍→烈焰劍
+    // LV1: 頭帶 + 木棍
+    if(level>=1){
+      P(-3,-7,6,1,c); // headband
+      P(4,-3,1,4,'#a0703a'); P(4,1,2,1,'#8a5f28'); // wooden stick
+    }
+    // LV2: 鐵劍(比木棍長、銀色) + 小圓盾
+    if(level>=2){
+      P(4,-6,1,7,'#c0c0d0'); P(4,-6,1,1,'#fff'); P(3,0,3,1,'#f9c784'); P(4,1,1,2,'#8a5f28'); // iron sword
+      P(-6,0,2,4,'#b0784a'); P(-6,0,2,1,'#c89060'); // small wood shield
+    }
+    // LV3: 鋼盔羽毛 + 鐵盾升級
+    if(level>=3){
+      P(-3,-8,6,1,'#a0a8c0'); P(-1,-10,1,2,'#e05c5c'); // helmet + feather
+      P(-7,-1,3,6,'#c0c0d0'); P(-7,-1,3,1,'#e0e0ec'); P(-6,1,1,2,c); // iron shield bigger
+    }
+    // LV4: 大劍(更長更寬) + 披風
+    if(level>=4){
+      P(4,-9,2,10,'#d8d8e8'); P(4,-9,1,10,'#fff'); P(3,1,4,1,'#f9c784'); P(4,2,2,2,'#8a5f28'); // greatsword
+      P(-4,-1,1,7,c); P(3,-1,1,7,c); P(-4,6,1,1,'#c04545'); P(3,6,1,1,'#c04545'); // cape
+    }
+    // LV5: 全身鎧甲 + 肩甲
+    if(level>=5){
+      P(-3,0,6,3,'#d0d0dc'); P(-3,0,6,1,'#f0f0f8'); P(-1,1,2,1,'#f9c784'); // breastplate
+      P(-4,-1,1,2,'#b0b8cc'); P(3,-1,1,2,'#b0b8cc'); // pauldrons
+    }
+    // LV6: 烈焰大劍(劍身發紅) + 金盔
+    if(level>=6){
+      P(4,-10,2,11,'#ff8040'); P(4,-10,1,11,'#ffd080'); P(4,-11,2,1,'#fff'); // flame blade
+      P(-3,-9,6,1,'#f9c784'); P(0,-11,1,2,'#f9c784'); P(0,-11,1,1,'#fff'); // gold helm
+    }
+  }
+  else if(cls.id==='ninja'){
+    // 忍者：武器 小刀→手裏劍→雙刀→影分身
+    if(level>=1){ P(-3,-3,6,1,c); P(4,-2,1,3,'#8a8a9a'); } // mask + kunai
+    if(level>=2){ P(-4,-5,8,1,c); P(-5,-4,2,1,c); P(-6,-3,1,2,c); P(4,-3,2,2,'#c0c0d0'); } // headband + shuriken
+    if(level>=3){ P(4,-4,1,6,'#e8e8f0'); P(4,-4,1,1,'#fff'); P(3,1,3,1,'#3a3a55'); } // ninja blade
+    if(level>=4){ P(-5,-4,1,5,'#e8e8f0'); P(4,-4,1,5,'#e8e8f0'); P(-5,-4,1,1,'#fff'); P(4,-4,1,1,'#fff'); } // dual blades
+    if(level>=5){ P(-4,-1,1,7,'#2b2b45'); P(3,-1,1,7,'#2b2b45'); P(-3,0,6,2,'#3a3a55'); } // cloak + armor
+    if(level>=6){ P(-2,-9,4,2,c); P(-1,-10,2,1,'#f9c784'); P(-6,-6,1,1,'#a0a0ff'); P(5,-5,1,1,'#a0a0ff'); } // crown + shadow aura
+  }
+  else if(cls.id==='knight'){
+    // 騎士：短劍→鐵劍→大劍→巨劍 + 盔甲層層升級
+    if(level>=1){ P(-3,-7,6,1,c); P(4,-3,1,4,'#c0c0d0'); } // helmet band + shortsword
+    if(level>=2){ P(-3,-8,6,2,c); P(-2,-6,1,1,dark); P(1,-6,1,1,dark); P(4,-6,1,7,'#d8d8e8'); P(4,-6,1,1,'#fff'); } // visor helmet + iron sword
+    if(level>=3){ P(-3,-1,6,4,'#a0a8c0'); P(-3,-1,6,1,'#c0c8dc'); P(4,-8,2,9,'#d8d8e8'); P(4,-8,1,9,'#fff'); P(3,1,4,1,'#f9c784'); } // plate + bigger sword
+    if(level>=4){ P(-4,-6,1,3,c); P(3,-6,1,3,c); P(4,-10,2,12,'#e0e0f0'); P(4,-10,1,12,'#fff'); } // pauldrons + greatsword
+    if(level>=5){ P(-4,0,1,7,'#8890a8'); P(3,0,1,7,'#8890a8'); P(-3,0,6,3,'#b0b8cc'); } // arm+body armor
+    if(level>=6){ P(4,-12,2,14,'#e8e8ff'); P(4,-12,1,14,'#fff'); P(-3,-10,6,2,'#f9c784'); P(-1,-12,2,2,'#f9c784'); } // legendary blade + royal helm
+  }
+  else if(cls.id==='mage'){
+    // 魔法師：法杖法力越來越強 木杖→水晶杖→大法杖 + 帽子光環
+    if(level>=1){ P(-2,-8,4,2,c); P(-1,-10,2,2,c); P(0,-11,1,1,c); P(4,-4,1,5,'#8a6d3a'); } // hat + wood staff
+    if(level>=2){ P(4,-9,1,10,'#8a6d3a'); P(3,-10,3,2,'#7ce0f0'); P(4,-11,1,1,'#fff'); } // staff + small orb
+    if(level>=3){ P(-4,0,8,4,c); P(-4,3,8,1,'#5a4d9a'); P(3,-11,3,3,'#7ce0f0'); } // robe + bigger orb
+    if(level>=4){ P(-1,-9,2,1,'#f9c784'); P(3,-12,3,4,'#a0f0ff'); P(4,-13,1,1,'#fff'); } // star + glowing orb
+    if(level>=5){ P(3,-13,3,5,'#c0f8ff'); P(2,-14,1,1,'#fff'); P(-5,-2,1,1,'#a0a0ff'); P(4,-2,1,1,'#a0a0ff'); } // power orb + sparks
+    if(level>=6){ P(-2,-11,4,1,'#f9c784'); P(0,-13,1,2,'#f9c784'); P(3,-14,3,6,'#e0ffff'); P(2,-15,1,1,'#fff'); } // gold trim + max orb
+  }
+  else if(cls.id==='archer'){
+    // 弓箭手：弓越來越大 短弓→長弓→戰弓 + 箭袋滿載
+    if(level>=1){ P(-4,-7,8,2,c); P(-4,-5,1,2,c); P(-6,-4,1,5,'#8a6d3a'); } // hood + short bow
+    if(level>=2){ P(-6,-6,1,10,'#8a6d3a'); P(-6,-6,1,1,'#a08050'); P(-6,4,1,1,'#a08050'); P(-5,-1,1,1,'#d0d0d0'); } // long bow
+    if(level>=3){ P(4,-4,2,6,brownD); P(4,-5,1,2,'#e8e8f0'); P(5,-5,1,2,'#e8e8f0'); P(4,-6,1,1,'#c0c0d0'); } // quiver arrows
+    if(level>=4){ P(-4,-1,1,7,'#3a6a4a'); P(3,-1,1,7,'#3a6a4a'); P(-7,-7,1,12,'#a08050'); P(-7,-7,1,1,'#c0a070'); } // cloak + bigger bow
+    if(level>=5){ P(-3,0,6,2,'#4a7a5a'); P(4,-6,2,8,brownD); P(4,-7,1,2,'#e8e8f0'); P(5,-7,1,2,'#e8e8f0'); } // armor + full quiver
+    if(level>=6){ P(-4,-8,8,1,'#f9c784'); P(0,-9,1,1,'#f9c784'); P(-8,-8,1,14,'#f9c784'); P(-8,-8,1,1,'#fff'); } // gold circlet + golden bow
+  }
+  else if(cls.id==='king'){
+    // 王者：權杖+皇冠+披風層層華麗
+    P(-4,-9,8,2,'#f9c045'); // crown base
+    P(-4,-11,1,2,'#f9c045'); P(-1,-12,2,3,'#f9c045'); P(3,-11,1,2,'#f9c045'); // crown points
+    P(-1,-12,1,1,'#fff'); P(-3,-10,1,1,'#e05c5c'); P(3,-10,1,1,'#4a90d9'); // jewels
+    if(level>=2){ P(4,-9,1,10,'#f9c045'); P(3,-10,3,2,'#e05c5c'); P(4,-11,1,1,'#fff'); } // scepter
+    if(level>=3){ P(-5,-1,1,7,'#f9c045'); P(3,-1,2,7,'#c8860a'); } // royal cape gold
+    if(level>=4){ P(-4,-1,1,7,'#e05c5c'); P(3,-1,1,7,'#e05c5c'); } // red cape lining
+    if(level>=5){ P(-3,0,6,3,'#f9d878'); P(-1,1,2,1,'#e05c5c'); } // golden armor
+    if(level>=6){ P(-6,-2,1,1,'#fff'); P(5,-3,1,1,'#fff'); P(-5,3,1,1,'#fff'); P(3,-11,3,3,'#ff6060'); } // sparkles + bigger scepter gem
+  }
+}
+
+function drawVault(){
+  const canvas=document.getElementById('vault-canvas');
+  if(!canvas) return;
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.imageSmoothingEnabled=false;
+  const income=getVaultTotal();
+  const AID=20000; // 失業補助保底金，一直都在
+  const total=income+AID; // 瓶子總量 = 保底 + 接案
+  const ratio=Math.min(total/VAULT_MAX,1);
+  let level=MILESTONES.filter(m=>income>=m.amount).length; // 等級只看接案收入
+  if(_levelOverride!==null) level=_levelOverride; // preview
+  const bx=60, by=40, bw=105, bh=280;
+  const neckW=42, neckH=28;
+  // neck
+  px(ctx, bx+bw/2-neckW/2, by-neckH, neckW, neckH, '#4a4370');
+  px(ctx, bx+bw/2-neckW/2+4, by-neckH+4, neckW-8, neckH-4, '#5d5590');
+  px(ctx, bx+bw/2-neckW/2+2, by-neckH-12, neckW-4, 12, '#c8924a');
+  // glass
+  px(ctx, bx-6, by-6, bw+12, bh+12, '#3d3559');
+  px(ctx, bx, by, bw, bh, '#221d38');
+
+  // ── aid base (2万綠色保底，永遠都在) ──
+  const aidRatio=Math.min(AID/VAULT_MAX,1);
+  const aidH=Math.round((bh-8)*aidRatio);
+  // income energy above aid
+  const incRatio=Math.min(income/VAULT_MAX,1);
+  const totalFillH=Math.round((bh-8)*ratio);
+
+  for(let i=0;i<totalFillH;i+=4){
+    const yy=by+bh-4-i;
+    let c;
+    if(i < aidH){
+      c = i%8<4 ? '#3d9970' : '#4aad80'; // green shield base
+    } else {
+      c = i%8<4 ? '#f9a825' : '#f9c045'; // golden income
+    }
+    px(ctx, bx+4, yy-4, bw-8, 4, c);
+  }
+  // boundary line between aid and income
+  if(income>0){
+    const boundY=by+bh-4-aidH;
+    px(ctx, bx+4, boundY-1, bw-8, 2, '#fff0c8');
+  }
+  // surface highlight
+  const surfaceY=by+bh-4-totalFillH;
+  px(ctx, bx+4, surfaceY, bw-8, 3, '#fff0c8');
+
+  // bubbles
+  if(totalFillH>20){
+    const t=Date.now()/400;
+    for(let b=0;b<4;b++){
+      const bxp=bx+15+((b*27)%(bw-30));
+      const byp=by+bh-8-((t*10+b*40)%(totalFillH-10));
+      px(ctx, bxp, byp, 4, 4, 'rgba(255,255,255,.5)');
+    }
+  }
+  px(ctx, bx+8, by+10, 6, bh-40, 'rgba(255,255,255,.12)');
+
+  // ── milestone markers (based on income + aid position) ──
+  MILESTONES.forEach(m=>{
+    const mr=(m.amount+AID)/VAULT_MAX;
+    if(mr>1) return;
+    const my=by+bh-4-Math.round((bh-8)*mr);
+    const reached=income>=m.amount;
+    px(ctx, bx+bw+2, my-1, 8, 2, reached?m.color:'#4a4370');
+    px(ctx, bx+bw+9, my-3, 6, 6, reached?m.color:'#3d3559');
+  });
+
+  // "保底" label on green zone
+  ctx.font='9px monospace'; ctx.fillStyle='#8fd0a8'; ctx.textAlign='left';
+  ctx.fillText('保底2萬', bx+8, by+bh-8);
+
+  // ── marmot warrior ──
+  const cls = getWarriorClass();
+  const isGold = (_levelOverride===null) && income>=VAULT_MAX; // 滿5萬變黃金傳說戰士（預覽等級時顯示職業裝備）
+  const warriorScale = 3.2 + level*0.7; // grows 3.2 → 7.4
+  const wx = 240;
+  const wy = by+bh-24 - level*5;
+  drawMarmotWarrior(ctx, wx, wy, level, warriorScale, cls, isGold);
+
+  // level badge + class name above warrior
+  ctx.font='bold 12px monospace'; ctx.textAlign='center';
+  ctx.fillStyle=isGold?'#f9c045':(cls.color==='#4a4a6a'?'#8a8ab0':cls.color);
+  ctx.fillText('LV.'+level, wx, wy-warriorScale*13-10);
+  ctx.font='bold 11px "Noto Sans TC",monospace'; ctx.fillStyle=isGold?'#ffe08a':'#fde8df';
+  ctx.fillText(isGold?'✦ 黃金傳說戰士 ✦':cls.name, wx, wy-warriorScale*13+2);
+
+  // ground
+  px(ctx, bx-10, by+bh+6, bw+250, 3, '#3d3559');
+
+  // ── update text ──
+  document.getElementById('vault-amount').textContent = '$'+income.toLocaleString();
+  const nextM = MILESTONES.find(m=>income<m.amount);
+  document.getElementById('vault-next').textContent = nextM
+    ? `距離「${nextM.title}」還差 $${(nextM.amount-income).toLocaleString()}`
+    : '已達最高等級！自由鼠戰士 👑';
+  document.getElementById('vault-bar').style.width = (incRatio*100/(1-aidRatio))+'%';
+  document.getElementById('vault-status').textContent = isGold
+    ? `✦ 黃金傳說戰士 ✦  [■■■■■■]`
+    : `${cls.name} LV.${level}  [${'■'.repeat(level)}${'□'.repeat(6-level)}]`;
+}
+
+let _vaultAnim=null;
+function startVaultAnim(){
+  stopVaultAnim();
+  const loop=()=>{ drawVault(); _vaultAnim=requestAnimationFrame(loop); };
+  loop();
+}
+function stopVaultAnim(){ if(_vaultAnim){cancelAnimationFrame(_vaultAnim);_vaultAnim=null;} }
+
+function renderVault(){
+  if(!window.STATE) return;
+  if(!window.STATE.vault) window.STATE.vault={income:[],milestonesSeen:[],startMonth:null};
+  const total=getVaultTotal();
+  document.getElementById('vault-milestones').innerHTML = MILESTONES.map((m,i)=>{
+    const reached=total>=m.amount;
+    return `<div style="display:flex;align-items:center;gap:11px;padding:8px 0;border-bottom:${i===MILESTONES.length-1?'none':'1px solid var(--bd)'};opacity:${reached?1:.4}">
+      <span style="font-size:22px;flex-shrink:0">${reached?'🪙':'🔒'}</span>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:${reached?700:400};color:var(--t0)">$${m.amount.toLocaleString()} · ${m.title}</div>
+        <div style="font-size:11px;color:var(--t2);margin-top:1px">${m.msg}</div>
+      </div>
+      ${reached?'<span style="font-size:16px">✅</span>':''}
+    </div>`;
+  }).join('');
+  const inc=window.STATE.vault.income.slice().reverse();
+  document.getElementById('income-total').textContent = '共 '+inc.length+' 筆';
+  const listEl=document.getElementById('income-list');
+  if(!inc.length){
+    listEl.innerHTML='<div style="text-align:center;padding:16px 0;font-size:13px;color:var(--t2)"><div style="font-size:28px;margin-bottom:6px">🪙</div>還沒有接案紀錄<br>接到案子就記一筆吧！</div>';
+    listEl.onclick=null;
+  } else {
+    listEl.innerHTML=inc.map(item=>`
+      <div class="tr" data-inc-id="${item.id}">
+        <span style="font-size:18px;flex-shrink:0">🪙</span>
+        <div style="flex:1;padding-left:6px">
+          <div style="font-size:13px;font-weight:600;color:var(--t0)">${item.name||'接案收入'}</div>
+          <div style="font-size:11px;color:var(--t2)">${item.date||''}</div>
+        </div>
+        <span style="font-family:monospace;font-size:14px;font-weight:700;color:#c8860a">+$${(item.amount||0).toLocaleString()}</span>
+        <button class="act-btn" data-action="del-inc" style="margin-left:6px">🗑</button>
+      </div>`).join('');
+    listEl.onclick=e=>{
+      const row=e.target.closest('[data-inc-id]');
+      const btn=e.target.closest('[data-action]');
+      if(!row||!btn) return;
+      if(btn.dataset.action==='del-inc') deleteIncome(row.dataset.incId);
+    };
+  }
+  // aid status
+  const startM=window.STATE.vault.startMonth;
+  const aidEl=document.getElementById('aid-status');
+  if(aidEl && startM){
+    const now=new Date();
+    const start=new Date(startM+'-01');
+    const monthsPassed=(now.getFullYear()-start.getFullYear())*12+(now.getMonth()-start.getMonth());
+    const left=Math.max(0,6-monthsPassed);
+    aidEl.textContent = left>0 ? `每月 $20,000 基底 · 剩 ${left} 個月` : '失業補助期已結束 · 現在靠自己了 💪';
+  }
+
+  startVaultAnim();
+}
+
+function quickAmount(n){ document.getElementById('income-amount').value=n; }
+
+function saveIncome(){
+  const name=document.getElementById('income-name').value.trim()||'接案收入';
+  const amount=parseInt(document.getElementById('income-amount').value);
+  if(!amount||amount<=0) return;
+  if(!window.STATE.vault) window.STATE.vault={income:[],milestonesSeen:[],startMonth:null};
+  if(!window.STATE.vault.startMonth) window.STATE.vault.startMonth=new Date().toISOString().slice(0,7);
+  const prevTotal=getVaultTotal();
+  window.STATE.vault.income.push({ id:uid(), name, amount, date:new Date().toLocaleDateString('zh-TW',{month:'numeric',day:'numeric'}) });
+  const newTotal=getVaultTotal();
+  document.getElementById('income-name').value='';
+  document.getElementById('income-amount').value='';
+  closeModal('m-addincome');
+  saveState();
+  renderVault();
+  triggerVaultRewards(prevTotal, newTotal, amount);
+}
+
+// decide which animation(s) to fire based on crossing 5000 steps and milestones
+function triggerVaultRewards(prevTotal, newTotal, amount){
+  const seen=window.STATE.vault.milestonesSeen;
+  const crossedMilestone=MILESTONES.find(m=>prevTotal<m.amount && newTotal>=m.amount && !seen.includes(m.amount));
+  // count how many 5000-steps crossed
+  const prevStep=Math.floor(prevTotal/5000);
+  const newStep=Math.floor(newTotal/5000);
+  const crossed5k = newStep>prevStep;
+
+  if(crossedMilestone){
+    // big celebration (milestone 1萬/2萬...)
+    seen.push(crossedMilestone.amount);
+    saveState();
+    setTimeout(()=>showVaultCele(crossedMilestone),400);
+  } else if(crossed5k){
+    // small celebration (every 5000)
+    showSmallReward(amount, newTotal);
+  } else {
+    // just a tiny toast
+    showCoinToast(amount);
+  }
+}
+
+function deleteIncome(id){
+  appConfirm('確定要刪除這筆接案紀錄嗎？', ()=>{
+    window.STATE.vault.income=(window.STATE.vault.income||[]).filter(i=>i.id!==id);
+    saveState();renderVault();
+  });
+}
+
+let _celeAnim=null;
+function showVaultCele(m){
+  document.getElementById('vc-title').textContent=m.title;
+  document.getElementById('vc-msg').textContent=m.msg;
+  document.getElementById('vault-cele').classList.add('on');
+  const level=MILESTONES.findIndex(x=>x.amount===m.amount)+1;
+  const canvas=document.getElementById('cele-canvas');
+  const ctx=canvas.getContext('2d');
+  let frame=0;
+  const coins=[];
+  for(let i=0;i<10;i++) coins.push({x:Math.random()*200,y:-20-Math.random()*100,v:1+Math.random()*2});
+  const loop=()=>{
+    ctx.clearRect(0,0,200,200);
+    ctx.imageSmoothingEnabled=false;
+    coins.forEach(c=>{
+      c.y+=c.v*2; if(c.y>200) c.y=-10;
+      px(ctx,Math.round(c.x),Math.round(c.y),8,8,'#f9c784');
+      px(ctx,Math.round(c.x)+2,Math.round(c.y)+2,4,4,'#f9a825');
+    });
+    const bounce=Math.abs(Math.sin(frame/8))*8;
+    drawMarmotWarrior(ctx,100,130-bounce,level,4.5,getWarriorClass(),getVaultTotal()>=VAULT_MAX);
+    frame++;
+    _celeAnim=requestAnimationFrame(loop);
+  };
+  loop();
+}
+function closeVaultCele(){
+  document.getElementById('vault-cele').classList.remove('on');
+  if(_celeAnim){cancelAnimationFrame(_celeAnim);_celeAnim=null;}
+}
+
+// ── 小鼠開心跳 + 金幣（每 5000）──
+let _smallAnim=null;
+function showSmallReward(amount, newTotal){
+  const box=document.getElementById('small-reward');
+  document.getElementById('sr-amount').textContent='+$'+amount.toLocaleString();
+  const msgs=['又存了一筆！鼠鼠好開心 🐭','存款增加！離目標更近了 ✨','金鼠庫又飽了一點 🪙','接案高手就是你 💪','穩穩累積中！鼠鼠跳起來 🎵'];
+  document.getElementById('sr-msg').textContent=msgs[Math.floor(Math.random()*msgs.length)];
+  box.style.display='flex';
+
+  const canvas=document.getElementById('small-canvas');
+  const ctx=canvas.getContext('2d');
+  const cls=getWarriorClass();
+  const level=MILESTONES.filter(m=>newTotal>=m.amount).length;
+  let frame=0;
+  const coins=[];
+  for(let i=0;i<6;i++) coins.push({x:20+Math.random()*80,y:-10-Math.random()*40,v:1+Math.random()*1.5});
+
+  const loop=()=>{
+    ctx.clearRect(0,0,120,120);
+    ctx.imageSmoothingEnabled=false;
+    // falling coins
+    coins.forEach(c=>{
+      c.y+=c.v*2; if(c.y>120)c.y=-10;
+      px(ctx,Math.round(c.x),Math.round(c.y),6,6,'#f9c045');
+      px(ctx,Math.round(c.x)+1,Math.round(c.y)+1,2,2,'#ffe08a');
+    });
+    // happy bouncing marmot (small, class gear)
+    const bounce=Math.abs(Math.sin(frame/6))*10;
+    drawMarmotWarrior(ctx,60,80-bounce,level,3,cls,newTotal>=VAULT_MAX);
+    // little "!" or music note above when jumping high
+    if(Math.sin(frame/6)>0.7){ px(ctx,58,80-bounce-40,4,4,'#fff'); }
+    frame++;
+    _smallAnim=requestAnimationFrame(loop);
+  };
+  loop();
+
+  // auto close after 1.8s
+  clearTimeout(box._t);
+  box._t=setTimeout(()=>{
+    box.style.display='none';
+    if(_smallAnim){cancelAnimationFrame(_smallAnim);_smallAnim=null;}
+  },1800);
+}
+
+// ── 小額金幣提示（沒跨5000）──
+function showCoinToast(amount){
+  const t=document.getElementById('coin-toast');
+  t.textContent='🪙 +$'+amount.toLocaleString();
+  t.style.display='block';
+  t.style.animation='popIn .3s ease';
+  clearTimeout(t._t);
+  t._t=setTimeout(()=>{ t.style.display='none'; },1500);
 }
 
 function openSched(id){
@@ -2304,6 +2925,7 @@ if(schedYearEl) schedYearEl.value=calYear;
 window.renderReminders = renderReminders;
 window.renderBacklog = renderBacklog;
 window.renderTodoEvents = renderTodoEvents;
+window.renderVault = renderVault;
 window.renderGoals = renderGoals;
 window.renderAchieve = renderAchieve;
 window.renderCare = renderCare;
