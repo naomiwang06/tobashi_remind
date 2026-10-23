@@ -222,6 +222,11 @@ canvas.scene.tap{cursor:pointer;touch-action:none}
 #saveSec.save-warn{border-color:var(--orange)}
 .cloud{font-size:13px;padding:6px 10px;background:var(--outline);border:2px solid var(--burrow);color:var(--dim)}
 .cloud-nag{grid-column:1/-1;display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--outline);border:3px solid var(--orange);padding:6px 8px;font-size:13px;color:var(--orange)}
+.acct{flex-basis:100%;font-size:12px;color:var(--orange)}
+.acct.on{color:var(--grass)}
+.clk-date{font-family:var(--f-zh);font-size:13px;color:var(--sky)}
+.clk-time{font-family:var(--f-pixel);font-size:16px;color:var(--gold);font-variant-numeric:tabular-nums;margin-top:4px}
+.dstamp.dlast{color:var(--dim)}
 .cloud.ok{border-color:var(--grass);color:var(--grass)}
 .cloud.readonly,.cloud.off{border-color:var(--orange);color:var(--orange)}
 .meals{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
@@ -361,6 +366,7 @@ textarea.rep{min-height:52px;font-size:15px}
       <div class="sub">DIG QUEST · 8-BIT</div>
     </div>
     <div class="day" id="dayLabel"></div>
+    <div class="acct" id="acctLabel">帳號：載入中…</div>
   </div>
 
   <header class="hud px" aria-label="角色狀態">
@@ -665,9 +671,12 @@ const heroCv=$('#hero');function paintHero(happy){heroCv.width=20;heroCv.height=
 function heroJump(){heroCv.classList.remove('jump');void heroCv.offsetWidth;heroCv.classList.add('jump');paintHero(true);setTimeout(()=>{heroCv.classList.remove('jump');paintHero(false)},1300)}
 
 /* ---------- render ---------- */
+function renderClock(){const n=$('#dayLabel');if(!n)return;const d=new Date();n.innerHTML='';
+ n.append(el('div','clk-date',d.getFullYear()+'/'+(d.getMonth()+1)+'/'+d.getDate()+'（'+'日一二三四五六'[d.getDay()]+'）'),el('div','clk-time',String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')))}
+setInterval(renderClock,10e3);
 function renderHUD(){const L=levelInfo(S.xp);$('#lv').textContent=L.lv;$('#titleBadge').textContent=titleOf(L.lv);$('#xpNow').textContent=L.cur;$('#xpNeed').textContent=L.need;$('#xpFill').style.width=(L.cur/L.need*100)+'%';
  $('#coins').textContent=S.coins;$('#streak').textContent=S.streak;
- const d=new Date();$('#dayLabel').innerHTML='';$('#dayLabel').append(el('div',null,'DAY '+(d.getMonth()+1)+'/'+d.getDate()),el('div',null,'WORLD '+L.lv));
+ const d=new Date();renderClock();
  const live=S.combo>1&&Date.now()-S.lastDoneAt<30*60e3;$('#spinBtn').hidden=S.spinDay===todayStr();$('#comboBox').classList.toggle('on',live);$('#comboN').textContent='x'+(live?S.combo:1);
  $('#comboK').textContent=live?'連擊中・剩 '+Math.ceil((30*60e3-(Date.now()-S.lastDoneAt))/60e3)+' 分':'30 分鐘內連破＝連擊';
  const p=$('#progress');p.innerHTML='';const total=S.tasks.length,done=S.tasks.filter(t=>t.done).length;let dt=0,dd=0;S.daily.forEach(d=>{dt+=d.times;dd+=Math.min(dcount(d.id),d.times)});p.append(el('span','lbl','特殊 '+done+'/'+total+' · 日常 '+dd+'/'+dt));for(let i=0;i<total;i++)p.append(el('span','seg'+(i<done?' on':'')));}
@@ -689,7 +698,7 @@ function renderStages(){const ol=$('#stages');ol.innerHTML='';
   if(t.report&&t.done&&t.reportText){const w=el('div','code rep-done');const v=el('span','v',t.reportText);w.append(el('span','k','回報：'),v);const cb=el('button','btn ghost sm','複製回報');cb.type='button';cb.onclick=()=>copyText('【'+t.title+'】'+t.reportText,v);w.append(cb);card.append(w)}
   if(t.report&&!t.done){const lab=el('label','rep-lbl',t.ask||'回報內容');lab.htmlFor='rep-'+t.id;const ta=el('textarea','rep');ta.id='rep-'+t.id;ta.rows=2;ta.value=t.reportText||'';ta.placeholder='例：最寬 3.8 公分，一碼 45 元';ta.oninput=()=>{t.reportText=ta.value;save()};card.append(lab,ta)}
   if(t.type==='buy'&&t.item){const w=el('div','where');w.style.color='var(--orange)';w.append(paintSmall('bag'),el('span',null,'清單：'+t.item));card.append(w)}
-  if(t.done){card.append(el('div','stamp','CLEAR'));if(t.gotXp){const g=el('div','meta');g.append(el('span','xp','+'+t.gotXp+' XP'));card.append(g)}}
+  if(t.done){card.append(el('div','stamp','CLEAR'));if(t.gotXp){const g=el('div','meta');g.append(el('span','xp','+'+t.gotXp+' XP'));if(t.doneAt)g.append(el('span','ex','完成於 '+(new Date(t.doneAt).toDateString()===new Date().toDateString()?'':(new Date(t.doneAt).getMonth()+1)+'/'+new Date(t.doneAt).getDate()+' ')+hhmm(t.doneAt)));card.append(g)}}
   else{const act=el('div','actions');const go=el('button','btn '+(t.type==='place'?'sky':t.type==='buy'?'pink':'green'),TYPE[t.type].btn);go.type='button';go.onclick=()=>complete(t.id);
    const x=el('button','x','移除');x.type='button';x.onclick=()=>{S.tasks=S.tasks.filter(z=>z.id!==t.id);save();renderAll()};
    act.append(go,x);card.append(act);
@@ -704,7 +713,7 @@ function renderDaily(){const box=$('#dailyList');box.innerHTML='';
  S.daily.forEach(d=>{const n=dcount(d.id),full=n>=d.times;const r=el('div','drow px'+(full?' full':''));r.dataset.id=d.id;
   const top=el('div','top');top.append(el('h3',null,d.title),el('span','meta-xp',SIZE[d.size].label+' · '+SIZE[d.size].xp+'XP'));
   if(d.times>1){const pp=el('span','pips');for(let i=0;i<d.times;i++)pp.append(el('i',i<n?'on':''));top.append(pp)}
-  if(full)top.append(el('span','dstamp','今日 CLEAR'));r.append(top);
+  const lastT=(S.dlog.dt||{})[d.id];if(full)top.append(el('span','dstamp','今日 CLEAR'+(lastT?' '+hhmm(lastT):'')));else if(lastT)top.append(el('span','dstamp dlast','上次 '+hhmm(lastT)));r.append(top);
   if(!full){const act=el('div','actions');const go=el('button','btn green sm',d.times>1?'完成（第 '+(n+1)+' 次）':'完成！');go.type='button';go.onclick=()=>completeDaily(d.id);
    const st=el('button','btn ghost sm',timers[d.id]?'衝刺中…':'先做 2 分鐘');st.type='button';st.onclick=()=>startTimer(d.id);
    const x=el('button','x','移除');x.type='button';x.onclick=()=>{S.daily=S.daily.filter(z=>z.id!==d.id);save();renderAll()};act.append(go,st,x);r.append(act);
@@ -809,7 +818,7 @@ async function completeDaily(id){if(busy)return;const d=S.daily.find(x=>x.id===i
  const now=Date.now();S.combo=(S.lastDoneAt&&now-S.lastDoneAt<30*60e3)?S.combo+1:1;S.lastDoneAt=now;
  const mult=Math.min(1+(S.combo-1)*.25,2);const xp=Math.round(SIZE[d.size].xp*mult);const coins=SIZE[d.size].coin+Math.floor(Math.random()*4);
  const loot=rollLoot(SIZE[d.size].luck+(S.combo>2?4:0));const before=levelInfo(S.xp).lv;touchStreak();
- S.dlog.c[id]=n+1;if(/餵貓/.test(d.title)){wkAdd('feeds');S.lastFeed=Date.now()}S.stats.clears++;S.dlog.clears=(S.dlog.clears||0)+1;wkAdd('clears');if(/餵貓/.test(d.title)&&n+1>=d.times&&!S.stats.feedDays.includes(todayStr()))S.stats.feedDays.push(todayStr());S.jar.amt+=3;const gift=checkJar();S.xp+=xp;S.coins+=coins;S.bag[loot.id]=(S.bag[loot.id]||0)+1;logToday(loot.id,xp);save();renderAll();
+ S.dlog.c[id]=n+1;S.dlog.dt=S.dlog.dt||{};S.dlog.dt[id]=Date.now();if(/餵貓/.test(d.title)){wkAdd('feeds');S.lastFeed=Date.now()}S.stats.clears++;S.dlog.clears=(S.dlog.clears||0)+1;wkAdd('clears');if(/餵貓/.test(d.title)&&n+1>=d.times&&!S.stats.feedDays.includes(todayStr()))S.stats.feedDays.push(todayStr());S.jar.amt+=3;const gift=checkJar();S.xp+=xp;S.coins+=coins;S.bag[loot.id]=(S.bag[loot.id]||0)+1;logToday(loot.id,xp);save();renderAll();
  await showReward({title:d.title+(d.times>1?'（'+(n+1)+'/'+d.times+'）':''),xp,coins,loot,combo:S.combo,mult,tier:'daily',jar:3});if(/餵貓/.test(d.title))await showCatHappy();
  if(levelInfo(S.xp).lv>before)await showLevelUp(before);if(gift)await showTicket('大禮物兌換券','存錢筒滿了！找奈奈領大禮物','大禮物解鎖！');renderAll();busy=false;afterFlow()}
 function copyText(s,node){const sel=()=>{try{const r=document.createRange();r.selectNodeContents(node);const g=getSelection();g.removeAllRanges();g.addRange(r);toast('已選取，長按就能複製')}catch(e){}};
@@ -1422,6 +1431,7 @@ function cloudPush(){clearTimeout(cloudT);cloudT=setTimeout(async()=>{if(window.
  try{await FB.set(FB.ref(FB.db,CLOUD_PATH+CLOUD.user.uid),{json,savedAt:S.savedAt||Date.now(),v:1});CLOUD.last=Date.now();CLOUD.status='ok'}catch(e){CLOUD.status=permErr(e)?'denied':'error'}renderCloud()},1200)}
 function renderCloud(){const n=$('#cloudInfo');if(!n)return;const st=CLOUD.status,u=CLOUD.user;n.className='cloud '+(st==='ok'?'ok':st==='loading'||st==='checking'?'checking':'off');
  n.textContent=st==='ok'?'雲端存檔：已開啟'+(u&&u.email?'（'+u.email+'）':'')+(CLOUD.last?'・上次同步 '+hhmm(CLOUD.last):''):st==='loading'?'雲端存檔：載入中…':st==='checking'?'雲端存檔：讀取雲端進度中…':st==='out'?'雲端存檔：還沒開。用 Google 登入後，換手機或資料被清掉都能讀回來':st==='denied'?'雲端存檔：資料庫規則擋住了，請奈奈開通 dig_quest 存檔規則':st==='nofb'?'雲端存檔：連不上雲端服務，先用存檔碼備份':'雲端存檔：這次同步失敗，下次存檔會再試';
+ const al=$('#acctLabel');if(al){al.textContent=u?'玩家帳號：'+(u.displayName||u.email||'已登入'):(st==='loading'?'帳號：載入中…':'未登入：進度只存在這支手機');al.classList.toggle('on',!!u)}
  const li=$('#cloudLogin'),lo=$('#cloudLogout'),nag=$('#cloudNag');if(li)li.hidden=!!u||st==='loading'||st==='nofb';if(lo)lo.hidden=!u;if(nag)nag.hidden=st!=='out'}
 function applyPacks(){S.packs=S.packs||[];S.bossPacks=S.bossPacks||[];
  PACKS.forEach(pk=>{if(S.packs.includes(pk.id))return;const dropT=(pk.drop||[]).concat(pk.tasks.map(x=>x.title));S.tasks=S.tasks.filter(t=>!t.sample&&!(t.done===false&&dropT.includes(t.title)));pk.tasks.forEach(t=>S.tasks.push(Object.assign({id:uid(),done:false},t)));S.packs.push(pk.id)});
