@@ -222,6 +222,12 @@ canvas.scene.tap{cursor:pointer;touch-action:none}
 #saveSec.save-warn{border-color:var(--orange)}
 .cloud{font-size:13px;padding:6px 10px;background:var(--outline);border:2px solid var(--burrow);color:var(--dim)}
 .cloud-nag{grid-column:1/-1;display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--outline);border:3px solid var(--orange);padding:6px 8px;font-size:13px;color:var(--orange)}
+.fut-day{padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.fut-day b{font-weight:400;color:var(--sky);font-size:15px}
+.fut-row{display:flex;gap:8px;align-items:center;font-size:14px;background:var(--burrow);border:3px solid var(--outline);padding:4px 8px}
+.fut-row span:first-child{flex:1;min-width:0;overflow-wrap:anywhere}
+.fut-row .x{margin-left:0}
+#taskDate{font:inherit;font-size:15px;background:var(--outline);color:var(--ink);border:3px solid #000;padding:3px 6px;color-scheme:dark}
 .acct{flex-basis:100%;font-size:12px;color:var(--orange)}
 .acct.on{color:var(--grass)}
 .clk-date{font-family:var(--f-zh);font-size:13px;color:var(--sky)}
@@ -406,6 +412,11 @@ textarea.rep{min-height:52px;font-size:15px}
     <ol class="stages" id="stages"></ol>
   </section>
 
+  <section aria-labelledby="futH" class="daily" id="futSec" hidden>
+    <div class="map-head"><h2 class="h2" id="futH"><span>UPCOMING · 預定任務</span></h2><span class="tier-note">到了那天會自動出現在今日特殊</span></div>
+    <div id="futList" class="daily"></div>
+  </section>
+
   <section aria-labelledby="dailyH" class="daily">
     <div class="map-head"><h2 class="h2" id="dailyH"><span>DAILY · 日常任務</span></h2><span class="tier-note">每天重置・卡住就先做 2 分鐘</span></div>
     <div id="dailyList" class="daily"></div>
@@ -442,6 +453,7 @@ textarea.rep{min-height:52px;font-size:15px}
     <label for="taskInput" class="hint">一行一關。寫「去○○」變到點、「買○○」變購買；開頭寫「大：」「小：」可指定份量，寫「一天 3 次」可重複。選 Boss 時，第一行寫名字，下面每行是一步。</label>
     <textarea id="taskInput" placeholder="例：&#10;去銀行補摺&#10;買貓砂&#10;回 3 封信"></textarea>
     <div class="opts">
+      <div id="dateWrap"><label class="opt-lbl" for="taskDate">日期</label><input type="date" id="taskDate"></div>
       <div><span class="opt-lbl">階級</span>
         <div class="seg-group" id="tierSeg" role="group" aria-label="任務階級">
           <button type="button" data-v="special" aria-pressed="true">今日特殊</button>
@@ -548,6 +560,8 @@ const SPR={
  pizza:["oooooooo","onnnnnno",".oyryyo.",".oyyyro.","..oryo..","..oyyo..","...oo..."],
  cake:["...gg...","..orro..","oooooooo","owwwwwwo","oppppppo","owwwwwwo","onnnnnno","oooooooo"],
  burger:[".onnnno.","onnwnnno","oggggggo","oyyyyyyo","obbbbbbo","oyyyyyyo","obbbbbbo","onnnnnno",".oooooo."],
+ ramen:["..w.w...",".w.w.w..","oooooooo","oyywwnyo","oyyyyyyo","oeeeeeeo",".oeeeeo.","..oooo.."],
+ qqball:[".oo..oo.","owdoowdo","oddooddo",".oooooo.","..owdo..","..oddo..","...oo..."],
  bucket:["..aaaa..",".aayyaa.","oooooooo","orwrrwro","orwrrwro",".orwwro.",".orrrro.","..oooo.."],
  ticket:["oooooooooooo","oyyyoyyyyyyo",".yyyoyrryyy.",".yyyoyrryyy.","oyyyoyyyyyyo","oooooooooooo"],
  heart:[".rr.rr.","rrrrrrr","rrrrrrr",".rrrrr.","..rrr..","...r..."],
@@ -571,7 +585,7 @@ function spriteEl(name,over){const c=document.createElement('canvas');paintCanva
 const SIZE={s:{label:'小',xp:15,coin:3,luck:0},m:{label:'中',xp:30,coin:6,luck:4},l:{label:'大',xp:50,coin:10,luck:10}};
 const TYPE={task:{label:'一般',bonus:0,btn:'完成！'},place:{label:'到點',bonus:10,btn:'我到了！'},buy:{label:'購買',bonus:5,btn:'買到了！'}};
 const LOOT=[
- {id:'chips',name:'洋芋片',r:'common',spr:'chips'},{id:'cola',name:'快樂水',r:'common',spr:'cola'},{id:'pudding',name:'雞蛋布丁',r:'common',spr:'pudding'},
+ {id:'chips',name:'洋芋片',r:'common',spr:'chips'},{id:'qqball',name:'巧克力QQ球',r:'common',spr:'qqball',over:{d:'#5a3a24'}},{id:'ramen',name:'豚骨拉麵',r:'rare',spr:'ramen'},{id:'cola',name:'快樂水',r:'common',spr:'cola'},{id:'pudding',name:'雞蛋布丁',r:'common',spr:'pudding'},
  {id:'cutlet',name:'大雞排',r:'rare',spr:'cutlet'},{id:'boba',name:'珍珠奶茶',r:'rare',spr:'boba'},{id:'rice',name:'滷肉飯',r:'rare',spr:'rice'},
  {id:'pizza',name:'牽絲起司披薩',r:'epic',spr:'pizza'},{id:'cake',name:'草莓鮮奶油蛋糕',r:'epic',spr:'cake'},
  {id:'burger',name:'三層起司漢堡',r:'legend',spr:'burger'},{id:'bucket',name:'宵夜炸雞全家桶',r:'legend',spr:'bucket'}
@@ -601,6 +615,9 @@ let wasFresh=false;try{S=JSON.parse(localStorage.getItem(KEY));if(!S){S=fresh();
 function save(){if(window.__restoring)return;S.savedAt=Date.now();cloudPush();try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 // new day rollover: drop cleared stages, carry leftovers
 if(S.day!==todayStr()){S.tasks=S.tasks.filter(t=>!t.done).map(t=>Object.assign(t,{carry:true}));S.day=todayStr();S.combo=0;save();}
+S.future=S.future||[];
+function promoteFuture(){S.future=S.future||[];const td=todayStr(),due=S.future.filter(t=>!t.date||t.date<=td);if(!due.length)return false;S.future=S.future.filter(t=>t.date&&t.date>td);due.forEach(t=>{delete t.carry;S.tasks.push(t)});if(S.tasks.some(t=>t.sample))S.tasks=S.tasks.filter(t=>!t.sample);save();return true}
+promoteFuture();
 // quest packs prepared in advance — each loads once into his map
 const OLD_V1=['到永樂市場，先去一樓看油飯','緞布店：買 4 塊同顏色、同材質的布料','緞布店：買白色新娘緞（軟的）3 碼','滷肉飯隔壁那家：買緞帶','再買緞帶：跟上一關一樣的四色＋白色','新莊巧巧郎自取店：拿王小奈的合包包裹','萬隆鼠家：確認日本包裹'];
 const PACKS=[{id:'2026-10-22-yongle-v3',drop:OLD_V1,tasks:[
@@ -719,16 +736,16 @@ function renderDaily(){const box=$('#dailyList');box.innerHTML='';
    const x=el('button','x','移除');x.type='button';x.onclick=()=>{S.daily=S.daily.filter(z=>z.id!==d.id);save();renderAll()};act.append(go,st,x);r.append(act);
    const tb=el('div','timer');tb.hidden=!timers[d.id];tb.appendChild(el('i'));r.append(tb)}
   box.appendChild(r)})}
-function renderAll(){grantTickets();if(S.dlog.day!==todayStr()){S.dlog={day:todayStr(),c:{}};save()}renderHUD();renderStages();renderDaily();renderBosses();renderShop();renderMeals();renderWardrobe();renderSaveInfo();renderWeek();renderTabs();renderBag();$('#soundBtn').textContent='音效：'+(S.sound?'開':'關')}
+function renderAll(){if(promoteFuture())setTimeout(()=>toast('今天的預定任務到了，出現在今日特殊'),300);grantTickets();renderFuture();if(S.dlog.day!==todayStr()){S.dlog={day:todayStr(),c:{}};save()}renderHUD();renderStages();renderDaily();renderBosses();renderShop();renderMeals();renderWardrobe();renderSaveInfo();renderWeek();renderTabs();renderBag();$('#soundBtn').textContent='音效：'+(S.sound?'開':'關')}
 
 /* ---------- input ---------- */
 let chosenType='auto',chosenSize='s',chosenTier='special';
 function segInit(id,cb){const g=document.getElementById(id);g.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;g.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b?'true':'false'));cb(b.dataset.v);sfx.blip()})}
 segInit('typeSeg',v=>chosenType=v);segInit('tierSeg',v=>chosenTier=v);segInit('sizeSeg',v=>chosenSize=v);
-function parse(line){line=line.replace(/^\s*\d+\s*[\.\)、．]\s*/,'');let sz=chosenSize;const sm=line.match(/^(大|中|小)\s*[：:]\s*/);if(sm){sz={'大':'l','中':'m','小':'s'}[sm[1]];line=line.slice(sm[0].length)}
+function parse(line){line=line.replace(/^\s*\d+\s*[\.\)、．]\s*/,'');let lineDate=null;const dm=line.match(/^\s*(\d{1,2})\s*[\/／月]\s*(\d{1,2})\s*日?\s*[：:]?\s*/);if(dm){lineDate=dateFromMD(+dm[1],+dm[2]);line=line.slice(dm[0].length)}let sz=chosenSize;const sm=line.match(/^(大|中|小)\s*[：:]\s*/);if(sm){sz={'大':'l','中':'m','小':'s'}[sm[1]];line=line.slice(sm[0].length)}
  let times=1;const tm=line.match(/[（(]?\s*一天\s*(?:可以)?\s*(?:解)?\s*(\d+)\s*次\s*[）)]?/);if(tm){times=+tm[1];line=line.replace(tm[0],'').trim()}const cm=line.match(/^([^：:]{2,14})[：:]\s*(.+)$/);const ctx=cm?cm[1].trim():'';
  const b=line.match(/買(.+)/),p=line.match(/(?:去|到|前往)([^\s，,。、：:]{1,16})/);let type=chosenType;
- if(type==='auto')type=b?'buy':(p||ctx)?'place':'task';const t={id:uid(),title:line,type,size:sz,times,done:false};
+ if(type==='auto')type=b?'buy':(p||ctx)?'place':'task';const t={id:uid(),title:line,type,size:sz,times,done:false};if(lineDate)t.date=lineDate;
  if(type==='place'){let pl=p?p[1]:(ctx||line);pl=pl.replace(/(寄|拿|買|辦|看|找|領|補|繳|吃|做|跑|運動|上課).*$/,'')||pl;t.place=pl}
  if(type==='buy'){t.item=b?b[1].replace(/^[：:]/,'').trim():line;if(ctx){t.place=ctx;t.nomap=true}}
  if(/回報/.test(line)){t.report=true;t.ask='回報內容'}return t}
@@ -736,8 +753,8 @@ $('#addBtn').onclick=()=>{const lines=$('#taskInput').value.split(/\n+/).map(s=>
  if(!lines.length){toast('先寫一件事就好，一件就能開局');return}
  if(chosenTier==='boss'){const steps=lines.slice(1).map(l=>l.replace(/^\s*\d+\s*[\.\)、．]\s*/,'')).filter(Boolean);if(!steps.length){toast('Boss 至少要有一步：第一行名字，下面每行一步');return}
   S.bosses.push({id:uid(),name:lines[0].replace(/^\s*\d+\s*[\.\)、．]\s*/,''),spr:Math.random()<.5?'slime':'demon',steps:steps.map(t=>({t,done:false})),dead:false,kills:0});$('#taskInput').value='';save();renderAll();sfx.hit();toast('野生的 Boss 出現了！');return}
- if(chosenTier==='special'&&S.tasks.some(t=>t.sample))S.tasks=S.tasks.filter(t=>!t.sample);
- lines.forEach(l=>{const t=parse(l);if(chosenTier==='daily')S.daily.push({id:t.id,title:t.title,size:t.size,times:t.times||1});else S.tasks.push(t)});$('#taskInput').value='';save();renderAll();sfx.pick();toast('新增了 '+lines.length+' 個'+(chosenTier==='daily'?'日常':'特殊')+'任務，出發！');burst(20)};
+ let futN=0;if(chosenTier==='special'&&S.tasks.some(t=>t.sample))S.tasks=S.tasks.filter(t=>!t.sample);
+ const pick=($('#taskDate')||{}).value||'';lines.forEach(l=>{const t=parse(l);if(chosenTier!=='daily'&&!t.date&&pick&&pick!==todayStr())t.date=pick;if(chosenTier!=='daily'&&t.date&&t.date>todayStr()){S.future.push(t);futN++;return}if(chosenTier==='daily')S.daily.push({id:t.id,title:t.title,size:t.size,times:t.times||1});else S.tasks.push(t)});$('#taskInput').value='';save();renderAll();sfx.pick();toast(futN?(futN===lines.length?'已排進預定任務，當天會自動出現':'新增了 '+(lines.length-futN)+' 個今天的任務，'+futN+' 個排進預定任務'):'新增了 '+lines.length+' 個'+(chosenTier==='daily'?'日常':'特殊')+'任務，出發！');burst(20)};
 $('#clearSample').onclick=()=>{S.tasks=S.tasks.filter(t=>!t.sample);save();renderAll();$('#taskInput').focus()};
 $('#diceBtn').onclick=()=>{const left=S.tasks.filter(t=>!t.done).concat(S.daily.filter(d=>dcount(d.id)<d.times));if(!left.length){toast('今天的任務都破完了，休息也算一種勝利');return}
  const t=left[Math.floor(Math.random()*left.length)];const li=document.querySelector('[data-id="'+t.id+'"]');sfx.pick();
@@ -991,6 +1008,7 @@ function showBossKill(bs,loot){return overlay(async(d,close)=>{d.append(el('div'
 const PET_MAX=5;let petT=null;
 function schedulePet(min){clearTimeout(petT);petT=setTimeout(tryPet,(min!=null?min:20+Math.random()*30)*60e3)}
 function tryPet(active){if(document.hidden||busy||document.querySelector('.overlay')){schedulePet(2);return}
+ if(!evOk()){schedulePet(10);return}evMark();
  if(!pendingCat&&Math.random()<.55&&(S.dlog.events||0)<8){S.dlog.events=(S.dlog.events||0)+1;save();const ks=Math.random()<.78?['water','move','wrist','eyes']:['meteor','rain'];const k=ks[Math.floor(Math.random()*ks.length)];if(WELL[k])showWell(k);else showFun(k);return}if((S.dlog.pets||0)>=PET_MAX){schedulePet();return}const key=pendingCat||rollCat(active===true);pendingCat=null;showPet(key)}
 async function afterFlow(){if(busy)return;await unlockCheck();if(busy)return;if(wantCard){wantCard=false;showCard();return}if(Math.random()<.15)setTimeout(()=>tryPet(true),900)}
 const CAT_SCENES={
@@ -1138,7 +1156,7 @@ function drawWheel(c,a){const n=SPIN.length,seg=Math.PI*2/n,cx=60,cy=62,R=50;c.c
   const m=a+(i+.5)*seg,[w,h]=sprSize(SPIN[i].spr);draw(c,SPIN[i].spr,cx+Math.cos(m)*R*.64-w/2,cy+Math.sin(m)*R*.64-h/2,1)}
  c.fillStyle='#110b24';c.beginPath();c.arc(cx,cy,7,0,Math.PI*2);c.fill();c.fillStyle='#ffc94a';c.beginPath();c.arc(cx,cy,4,0,Math.PI*2);c.fill();
  c.fillStyle='#110b24';c.beginPath();c.moveTo(cx-7,1);c.lineTo(cx+7,1);c.lineTo(cx,17);c.closePath();c.fill();c.fillStyle='#fff8e7';c.beginPath();c.moveTo(cx-4,3);c.lineTo(cx+4,3);c.lineTo(cx,12);c.closePath();c.fill()}
-async function showSpin(){if(busy||S.spinDay===todayStr())return;busy=true;let won=null,before=levelInfo(S.xp).lv,gift=false;
+async function showSpin(){if(busy||S.spinDay===todayStr())return;busy=true;evMark();let won=null,before=levelInfo(S.xp).lv,gift=false;
  await overlay((d,close)=>{d.append(el('div','big-title','今日轉盤'),el('div','cheer','每天第一次打開可以轉一次'));
   const cv=el('canvas','wheel');cv.width=120;cv.height=120;d.append(cv);const ctx=cv.getContext('2d');let ang=-Math.PI/2;drawWheel(ctx,ang);
   const res=el('div','scene-text','');d.append(res);const go=el('button','btn big','轉！');go.type='button';const later=el('button','x','等等再轉');later.type='button';later.onclick=close;
@@ -1190,7 +1208,7 @@ async function showHungry(m){busy=true;let res='',done=false;
  S.dlog.mealNag=S.dlog.mealNag||{};S.dlog.mealNag[m.k]=res==='snooze'?Date.now()+30*60e3:9e15;save();busy=false;
  if(res==='ate')eatMeal(m.k);else if(res==='go')toast('吃完回來按「吃飽了！」，補 HP 拿經驗');else toast('好，30 分鐘後再叫你')}
 function mealCheck(){if(busy||document.hidden||document.querySelector('.overlay'))return;S.dlog.meals=S.dlog.meals||{};S.dlog.mealNag=S.dlog.mealNag||{};const h=hourNow();
- const m=MEALS.find(x=>!S.dlog.meals[x.k]&&(S.dlog.mealNag[x.k]||0)<=Date.now()&&h>=x.nag&&h<x.to);if(!m){renderMeals();return}S.dlog.mealNag[m.k]=9e15;save();showHungry(m)}
+ const m=MEALS.find(x=>!S.dlog.meals[x.k]&&(S.dlog.mealNag[x.k]||0)<=Date.now()&&h>=x.nag&&h<x.to);if(!m){renderMeals();return}if(!evOk())return;evMark();S.dlog.mealNag[m.k]=9e15;save();showHungry(m)}
 setInterval(mealCheck,60e3);setTimeout(mealCheck,6000);
 
 /* ---------- save vault: backup code / file, restore ---------- */
@@ -1285,7 +1303,7 @@ paintHero(false);
 
 /* ---------- random events: 社畜小提醒 + fun ---------- */
 const WELL={
- water:{title:'喝水時間！',sub:'土撥鼠幫你倒好一大杯水了，喝幾口',btn:'喝了！',xp:5,dur:0},
+ water:{title:'新兵飲水 300CC！',sub:'土撥鼠班長：新兵飲水 300CC，喝水！',btn:'是！喝水！',xp:5,dur:0},
  move:{title:'跟我一起動一動！',sub:'站起來，跟土撥鼠一起動 30 秒',btn:'開始（30 秒）',xp:12,dur:30,cues:['原地踏步','雙手舉高伸展','左右扭扭腰']},
  wrist:{title:'轉轉手腕',sub:'順時針轉 10 圈，再逆時針轉 10 圈',btn:'開始（20 秒）',xp:8,dur:20,cues:['順時針轉轉','逆時針轉轉']},
  eyes:{title:'眼睛休息一下',sub:'看向遠方 20 秒，讓眼睛放鬆',btn:'開始（20 秒）',xp:8,dur:20,cues:['看遠方','慢慢眨眼']}
@@ -1297,7 +1315,7 @@ function drawWell(c,t,key,e,w){const run=e>=0&&e<w.dur,hx=70,hy=48;
   c.fillStyle='#fff8e7';c.fillRect(Math.round(30+(t*4)%100),14,10,3);c.fillStyle='#d9a066';c.fillRect(0,64,160,26);c.fillStyle='#110b24';c.fillRect(0,64,160,2);
   draw(c,run&&Math.floor(e*2)%4!==0?'heroHappy':'hero',hx,hy,1);if(run)T(c,'遠～',hx+18,hy-8,FZ,8,'#ffc94a')}
  else{roomBg(c);
-  if(key==='water'){const lvl=1-((t*.3)%1);draw(c,'heroHappy',hx,hy,1);c.fillStyle='#110b24';c.fillRect(hx+15,hy+2,10,15);c.fillStyle='#e8f4ff';c.fillRect(hx+16,hy+3,8,13);c.fillStyle='#7cc8ff';const h=Math.round(12*lvl);c.fillRect(hx+16,hy+16-h,8,h);paw(c,hx+13,hy+8);if(Math.floor(t*3)%2)T(c,'咕嘟',hx+28,hy-6,FZ,8,'#7cc8ff')}
+  if(key==='water'){const lvl=1-((t*.3)%1);const ARMY={pal:{b:'#6f7d3c',l:'#d9d3a4',p:'#ff8fa3'},layers:[{x:1,y:-2,rows:["....gggggggg....","..gggggggggggg..",".ggggggyggggggg.","oooooooooooooooo"]}]};drawHeroLook(c,'heroHappy',hx,hy,1,ARMY);if(Math.floor(t*1.6)%2===0){c.fillStyle='#110b24';c.fillRect(hx-58,hy-30,56,18);c.fillStyle='#fff8e7';c.fillRect(hx-57,hy-29,54,16);c.fillRect(hx-6,hy-14,4,4);T(c,'新兵飲水 300CC',hx-55,hy-28,FZ,7,'#110b24');T(c,'喝水！',hx-55,hy-20,FZ,7,'#c2445f')}c.fillStyle='#110b24';c.fillRect(hx+15,hy+2,10,15);c.fillStyle='#e8f4ff';c.fillRect(hx+16,hy+3,8,13);c.fillStyle='#7cc8ff';const h=Math.round(12*lvl);c.fillRect(hx+16,hy+16-h,8,h);paw(c,hx+13,hy+8);if(Math.floor(t*3)%2)T(c,'咕嘟',hx+28,hy-6,FZ,8,'#7cc8ff')}
   else if(key==='move'){const f=run?Math.floor(e*3)%2:0;const cue=run?Math.floor(e/10):0;let y=hy-(f?4:0),x=hx;if(cue===2&&run)x=hx+(f?-3:3);draw(c,f?'heroHappy':'hero',x,y,1);
    if(!run||cue===0){paw(c,x-3,y+9);paw(c,x+16,y+9)}else{const up=cue===1||f;if(up){paw(c,x-3,y-2);paw(c,x+16,y-2)}else{paw(c,x-3,y+9);paw(c,x+16,y+9)}}
    if(run&&cue===0){c.fillStyle='#110b24';c.fillRect(x+3+(f?0:6),hy+16,4,2)}}
@@ -1372,7 +1390,7 @@ $('#packImport').onclick=async()=>{if(busy)return;let p;try{p=packDecode($('#pac
  S.packsIn=S.packsIn||[];if(S.packsIn.includes(p.id)){toast('這個任務包已經收過了');return}S.packsIn.push(p.id);let n=0,desc='';
  if(p.tier==='boss'&&p.boss){S.bosses.unshift({id:uid(),name:p.boss.name,spr:Math.random()<.5?'slime':'demon',steps:p.boss.steps.map(t=>({t,done:false})),dead:false,kills:0});desc='Boss：'+p.boss.name}
  else if(p.tier==='daily'){(p.items||[]).forEach(t=>{S.daily.push({id:uid(),title:t.title,size:t.size||'s',times:t.times||1});n++});desc=n+' 個日常任務'}
- else{(p.items||[]).forEach(t=>{S.tasks.push(Object.assign({},t,{id:uid(),done:false,fromPack:true}));n++});desc=n+' 個特殊任務'}
+ else{let fn=0;(p.items||[]).forEach(t=>{const nt=Object.assign({},t,{id:uid(),done:false,fromPack:true});if(nt.date&&nt.date>todayStr()){S.future.push(nt);fn++}else S.tasks.push(nt);n++});desc=n+' 個特殊任務'+(fn?'（其中 '+fn+' 個是之後日子的預定任務）':'')}
  save();$('#packInput').value='';renderAll();busy=true;await showChest('收到任務包！',desc,'已經放進「'+(p.tier==='boss'?'冒險':'今日')+'」分頁',false);busy=false;showPage(p.tier==='boss'?'adv':'today');unlockCheck()};
 
 /* ---------- cat rage: no feeding for hours ---------- */
@@ -1380,7 +1398,7 @@ const CAT_HOURS=5;
 function feedTask(){return S.daily.find(x=>/餵貓/.test(x.title))}
 function catCheck(){if(busy||document.hidden||document.querySelector('.overlay'))return;const d=feedTask();if(!d||dcount(d.id)>=d.times)return;const h=new Date().getHours();if(h<9||h>=23)return;
  const m=new Date();m.setHours(8,0,0,0);const last=Math.max(S.lastFeed||0,m.getTime());if(Date.now()-last<CAT_HOURS*3600e3)return;if((S.dlog.catNag||0)>Date.now())return;
- S.dlog.catNag=Date.now()+45*60e3;save();showCatRage(Math.floor((Date.now()-last)/3600e3))}
+ if(!evOk())return;evMark();S.dlog.catNag=Date.now()+45*60e3;save();showCatRage(Math.floor((Date.now()-last)/3600e3))}
 function drawRage(c,t){roomBg(c);c.fillStyle='#110b24';c.fillRect(14,34,52,3);c.fillStyle='#b07a45';c.fillRect(15,34,50,2);
  c.fillStyle='#c48cff';c.fillRect(20,26,6,8);c.fillStyle='#6fdc8c';c.fillRect(30,28,8,6);
  const ph=t%2.4;const cy=ph<1?20+ph*ph*44:64-8;c.fillStyle='#110b24';c.fillRect(49,Math.round(cy)-1,9,10);c.fillStyle='#fff8e7';c.fillRect(50,Math.round(cy),7,8);if(ph>=1&&ph<1.3){T(c,'鏘！',46,46,FZ,8,'#ff6f91')}
@@ -1407,7 +1425,7 @@ BADGES.push(['week1','週寶箱達人','開過一次週大寶箱',()=>(S.stats.w
 /* ---------- pages + tab bar ---------- */
 const PAGES=[['today','今日'],['adv','冒險'],['shop','商店'],['coll','收藏']];
 (function(){const wrap=$('.wrap'),q=s=>document.querySelector(s);
- const map={today:['.logo','.hud','#catsPanel','[aria-labelledby="mealH"]','[aria-labelledby="mapH"]','[aria-labelledby="dailyH"]','.forge'],adv:['#weekSec','[aria-labelledby="bossH"]'],shop:['[aria-labelledby="shopH"]','[aria-labelledby="wardH"]'],coll:['[aria-labelledby="bagH"]','#packSec','#saveSec','.foot']};
+ const map={today:['.logo','.hud','#catsPanel','[aria-labelledby="mealH"]','[aria-labelledby="mapH"]','#futSec','[aria-labelledby="dailyH"]','.forge'],adv:['#weekSec','[aria-labelledby="bossH"]'],shop:['[aria-labelledby="shopH"]','[aria-labelledby="wardH"]'],coll:['[aria-labelledby="bagH"]','#packSec','#saveSec','.foot']};
  const mini=el('div','mini-hud');mini.id='miniHud';wrap.prepend(mini);
  PAGES.forEach(([k])=>{const pg=el('div','page');pg.dataset.page=k;map[k].forEach(sel=>{const n=q(sel);if(n)pg.append(n)});wrap.append(pg)});
  const bar=el('nav','tabbar');bar.setAttribute('aria-label','分頁');PAGES.forEach(([k,n])=>{const b=el('button','tab');b.type='button';b.dataset.page=k;b.append(el('span','tn',n),el('i','dot'));b.onclick=()=>{showPage(k);sfx.blip()};bar.append(b)});document.body.append(bar)})();
@@ -1440,7 +1458,7 @@ function adoptState(o){Object.keys(S).forEach(k=>delete S[k]);Object.assign(S,o)
  if(S.day!==todayStr()){S.tasks=(S.tasks||[]).filter(t=>!t.done).map(t=>Object.assign(t,{carry:true}));S.day=todayStr();S.combo=0}
  S.tasks=S.tasks||[];S.daily=S.daily||[];S.bag=S.bag||{};S.bosses=S.bosses||[];if(!S.dlog||S.dlog.day!==todayStr())S.dlog={day:todayStr(),c:{}};
  S.coupons=S.coupons||[];S.jar=S.jar||{amt:0,done:0};S.stats=Object.assign({clears:0,starts:0,allClears:0,feedDays:[],mealDays:[]},S.stats||{});S.badges=S.badges||{};S.sets=S.sets||{};S.catDex=S.catDex||{};
- S.gacha=Object.assign({tickets:0,lvT:0,owned:{},skin:'',acc:''},S.gacha||{});applyPacks();
+ S.gacha=Object.assign({tickets:0,lvT:0,owned:{},skin:'',acc:''},S.gacha||{});S.future=S.future||[];applyPacks();promoteFuture();
  try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}idbSet(JSON.stringify(S));paintHero(false);renderAll()}
 async function cloudRead(u){const snap=await FB.get(FB.ref(FB.db,CLOUD_PATH+u.uid));if(!snap.exists())return null;try{const o=JSON.parse(snap.val().json);return o&&typeof o.xp==='number'?o:null}catch(e){return null}}
 async function cloudLogin(u){CLOUD.status='checking';renderCloud();let cs=null;try{cs=await cloudRead(u)}catch(e){CLOUD.status=permErr(e)?'denied':'error';renderCloud();return}
@@ -1458,6 +1476,17 @@ document.addEventListener('visibilitychange',async()=>{if(document.hidden){if(CL
   au.onAuthStateChanged(auth,u=>{CLOUD.user=u;if(u)cloudLogin(u);else{CLOUD.ok=false;CLOUD.status='out';renderCloud()}})}
  catch(e){CLOUD.status='nofb';renderCloud()}})();
 if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+
+
+/* ---------- scheduled tasks list ---------- */
+function dateFromMD(m,d){const now=new Date();let y=now.getFullYear();const t=new Date(y,m-1,d);if(t<new Date(now.getFullYear(),now.getMonth(),now.getDate()-30))y++;return todayStr(new Date(y,m-1,d))}
+function fmtFutDate(ds){const d=new Date(ds+'T00:00:00');const diff=Math.round((d-new Date(todayStr()+'T00:00:00'))/864e5);return (d.getMonth()+1)+'/'+d.getDate()+'（'+'日一二三四五六'[d.getDay()]+'）'+(diff===1?'・明天':diff===2?'・後天':'・'+diff+' 天後')}
+function renderFuture(){const sec=$('#futSec');if(!sec)return;const list=$('#futList');list.innerHTML='';const f=(S.future||[]).slice().sort((a,b)=>a.date<b.date?-1:1);sec.hidden=!f.length;const groups={};f.forEach(t=>{(groups[t.date]=groups[t.date]||[]).push(t)});
+ Object.keys(groups).forEach(ds=>{const box=el('div','fut-day px');box.append(el('b',null,fmtFutDate(ds)));groups[ds].forEach(t=>{const r=el('div','fut-row');r.append(el('span',null,t.title),el('span','tag '+t.type,TYPE[t.type].label));const x=el('button','x','移除');x.type='button';x.onclick=()=>armed(x,'再按一次移除',()=>{S.future=S.future.filter(z=>z.id!==t.id);save();renderAll()});r.append(x);box.append(r)});list.append(box)})}
+(function(){const inp=$('#taskDate');if(inp){inp.value=todayStr();inp.min=todayStr()}const sync=()=>{const w=$('#dateWrap');if(w)w.hidden=chosenTier!=='special'};document.getElementById('tierSeg').addEventListener('click',()=>setTimeout(sync,0));sync()})();
+
+/* ---------- event pacing: at most one random pop-up every 8 minutes ---------- */
+var EV={last:0};function evOk(){return Date.now()-EV.last>8*60e3}function evMark(){EV.last=Date.now()}
 
 setInterval(renderHUD,30e3);
 renderAll();
