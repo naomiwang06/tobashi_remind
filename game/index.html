@@ -228,6 +228,10 @@ canvas.scene.tap{cursor:pointer;touch-action:none}
 .fut-row span:first-child{flex:1;min-width:0;overflow-wrap:anywhere}
 .fut-row .x{margin-left:0}
 #taskDate{font:inherit;font-size:15px;background:var(--outline);color:var(--ink);border:3px solid #000;padding:3px 6px;color-scheme:dark}
+.drow.ult{border-color:var(--gold);background:#3d2f55;box-shadow:inset 0 0 0 2px var(--berry),0 6px 0 var(--outline)}
+.drow.ult h3{color:var(--gold);font-size:17px}
+.tag.ult-tag{background:var(--gold);animation:rainbow 2s linear infinite}
+.big-title.ult{color:var(--gold);animation:blink .5s steps(2) 6,rainbow 1.2s linear infinite}
 .acct{flex-basis:100%;font-size:12px;color:var(--orange)}
 .acct.on{color:var(--grass)}
 .clk-date{font-family:var(--f-zh);font-size:13px;color:var(--sky)}
@@ -475,6 +479,7 @@ textarea.rep{min-height:52px;font-size:15px}
           <button type="button" data-v="s" aria-pressed="true">小</button>
           <button type="button" data-v="m" aria-pressed="false">中</button>
           <button type="button" data-v="l" aria-pressed="false">大</button>
+          <button type="button" data-v="x" aria-pressed="false">終極</button>
         </div>
       </div>
     </div>
@@ -583,7 +588,7 @@ function paintCanvas(cv,name,over){const [w,h]=sprSize(name);cv.width=w;cv.heigh
 function spriteEl(name,over){const c=document.createElement('canvas');paintCanvas(c,name,over);return c;}
 
 /* ---------- data ---------- */
-const SIZE={s:{label:'小',xp:15,coin:3,luck:0},m:{label:'中',xp:30,coin:6,luck:4},l:{label:'大',xp:50,coin:10,luck:10}};
+const SIZE={s:{label:'小',xp:15,coin:3,luck:0},m:{label:'中',xp:30,coin:6,luck:4},l:{label:'大',xp:50,coin:10,luck:10},x:{label:'終極',xp:150,coin:40,luck:25}};
 const TYPE={task:{label:'一般',bonus:0,btn:'完成！'},place:{label:'到點',bonus:10,btn:'我到了！'},buy:{label:'購買',bonus:5,btn:'買到了！'}};
 const LOOT=[
  {id:'chips',name:'洋芋片',r:'common',spr:'chips'},{id:'qqball',name:'巧克力QQ球',r:'common',spr:'qqball',over:{d:'#5a3a24'}},{id:'ramen',name:'豚骨拉麵',r:'rare',spr:'ramen'},{id:'cola',name:'快樂水',r:'common',spr:'cola'},{id:'pudding',name:'雞蛋布丁',r:'common',spr:'pudding'},
@@ -635,15 +640,17 @@ const PACKS=[{id:'2026-10-22-yongle-v3',drop:OLD_V1,tasks:[
 ]},{id:'2026-10-29-special',tasks:[
  {title:'買做尾巴的塑膠管',type:'buy',item:'做尾巴的塑膠管',size:'m'},
  {title:'買道具的繩子',type:'buy',item:'道具用的繩子',size:'m'},
- {title:'買起酥蛋糕',type:'buy',item:'起酥蛋糕',size:'s'},
+ {title:'買起酥蛋糕',type:'buy',item:'起酥蛋糕',size:'l'},
  {title:'帶奈奈吃午餐',type:'task',size:'m'},
  {title:'把奈的午餐拿回家冰起來',type:'task',size:'s',note:'帶回家後放進冰箱'}
 ]}];
 S.packs=S.packs||[];
 const DAILY_DEFAULT=[['清桌上的垃圾','s'],['撿地上的垃圾','s'],['掃地','m'],['洗衣服','m'],['整理冰箱','m'],['丟掉過期食物','s'],['收拾陽台的 5 隻襪子','s'],['餵貓','s',3],['完成一支短影片','l'],['完成一支長影片','l']];
-const DAILY_PACKS=[{id:'2026-10-29-once',items:[{title:'整理廁所、清貓大便',size:'m'},{title:'殺螞蟻',size:'s'}]}];
+const DAILY_PACKS=[{id:'2026-10-29-once',items:[{title:'整理廁所、清貓大便',size:'x'},{title:'殺螞蟻',size:'s'}]}];
+const FIXES=[{id:'2026-10-29-sizes',run:()=>{S.tasks.forEach(t=>{if(t.title==='買起酥蛋糕'&&!t.done)t.size='l'});S.daily.forEach(d=>{if(d.title==='整理廁所、清貓大便')d.size='x'})}}];
+function applyFixes(){S.fixes=S.fixes||[];FIXES.forEach(f=>{if(S.fixes.includes(f.id))return;try{f.run()}catch(e){}S.fixes.push(f.id)})}
 function applyDailyPacks(){S.dailyPacks=S.dailyPacks||[];DAILY_PACKS.forEach(pk=>{if(S.dailyPacks.includes(pk.id))return;pk.items.forEach(it=>S.daily.push({id:uid(),title:it.title,size:it.size,times:1,once:true}));S.dailyPacks.push(pk.id)})}
-if(!S.daily)S.daily=DAILY_DEFAULT.map(d=>({id:uid(),title:d[0],size:d[1],times:d[2]||1}));applyDailyPacks();
+if(!S.daily)S.daily=DAILY_DEFAULT.map(d=>({id:uid(),title:d[0],size:d[1],times:d[2]||1}));applyDailyPacks();applyFixes();
 if(!S.dlog||S.dlog.day!==todayStr())S.dlog={day:todayStr(),c:{}};
 S.coupons=S.coupons||[];S.stats=S.stats||{};S.stats.clears=S.stats.clears||0;S.stats.starts=S.stats.starts||0;S.stats.allClears=S.stats.allClears||0;S.stats.feedDays=S.stats.feedDays||[];S.badges=S.badges||{};S.sets=S.sets||{};S.catDex=S.catDex||{};S.jar=S.jar||{amt:0,done:0};
 if(!S.bosses)S.bosses=[{id:uid(),name:'短影片史萊姆',spr:'slime',steps:['找素材','剪輯','上字幕','做封面','上傳']},{id:uid(),name:'長影片巨魔',spr:'demon',steps:['寫大綱','粗剪','精剪','上字幕','做封面','上傳']}].map(b=>Object.assign(b,{steps:b.steps.map(t=>({t,done:false})),dead:false,kills:0}));
@@ -736,8 +743,8 @@ function renderBag(){const g=$('#bagGrid');g.innerHTML='';let tot=0,got=0;
  $('#bagCount').textContent=got+' / '+LOOT.length+' 種・共 '+tot+' 份';if(typeof renderCollection==='function')renderCollection()}
 function renderDaily(){const box=$('#dailyList');box.innerHTML='';
  if(!S.daily.length){box.appendChild(el('div','empty','還沒有日常任務。在下方新增時選「日常」。'));return}
- S.daily.forEach(d=>{const n=dcount(d.id),full=n>=d.times;const r=el('div','drow px'+(full?' full':''));r.dataset.id=d.id;
-  const top=el('div','top');if(d.once)top.append(el('span','tag rep','一次性'));top.append(el('h3',null,d.title),el('span','meta-xp',SIZE[d.size].label+' · '+SIZE[d.size].xp+'XP'));
+ S.daily.forEach(d=>{const n=dcount(d.id),full=n>=d.times;const r=el('div','drow px'+(full?' full':'')+(d.size==='x'?' ult':''));r.dataset.id=d.id;
+  const top=el('div','top');if(d.size==='x')top.append(el('span','tag ult-tag','終極任務'));if(d.once)top.append(el('span','tag rep','一次性'));top.append(el('h3',null,d.title),el('span','meta-xp',SIZE[d.size].label+' · '+SIZE[d.size].xp+'XP'));
   if(d.times>1){const pp=el('span','pips');for(let i=0;i<d.times;i++)pp.append(el('i',i<n?'on':''));top.append(pp)}
   const lastT=(S.dlog.dt||{})[d.id];if(full)top.append(el('span','dstamp','今日 CLEAR'+(lastT?' '+hhmm(lastT):'')));else if(lastT)top.append(el('span','dstamp dlast','上次 '+hhmm(lastT)));r.append(top);
   if(!full){const act=el('div','actions');const go=el('button','btn green sm',d.times>1?'完成（第 '+(n+1)+' 次）':'完成！');go.type='button';go.onclick=()=>completeDaily(d.id);
@@ -751,7 +758,7 @@ function renderAll(){if(promoteFuture())setTimeout(()=>toast('今天的預定任
 let chosenType='auto',chosenSize='s',chosenTier='special';
 function segInit(id,cb){const g=document.getElementById(id);g.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;g.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b?'true':'false'));cb(b.dataset.v);sfx.blip()})}
 segInit('typeSeg',v=>chosenType=v);segInit('tierSeg',v=>chosenTier=v);segInit('sizeSeg',v=>chosenSize=v);
-function parse(line){line=line.replace(/^\s*\d+\s*[\.\)、．]\s*/,'');let lineDate=null;const dm=line.match(/^\s*(\d{1,2})\s*[\/／月]\s*(\d{1,2})\s*日?\s*[：:]?\s*/);if(dm){lineDate=dateFromMD(+dm[1],+dm[2]);line=line.slice(dm[0].length)}let sz=chosenSize;const sm=line.match(/^(大|中|小)\s*[：:]\s*/);if(sm){sz={'大':'l','中':'m','小':'s'}[sm[1]];line=line.slice(sm[0].length)}
+function parse(line){line=line.replace(/^\s*\d+\s*[\.\)、．]\s*/,'');let lineDate=null;const dm=line.match(/^\s*(\d{1,2})\s*[\/／月]\s*(\d{1,2})\s*日?\s*[：:]?\s*/);if(dm){lineDate=dateFromMD(+dm[1],+dm[2]);line=line.slice(dm[0].length)}let sz=chosenSize;const sm=line.match(/^(終極|大|中|小)\s*[：:]\s*/);if(sm){sz={'終極':'x','大':'l','中':'m','小':'s'}[sm[1]];line=line.slice(sm[0].length)}
  let times=1;const tm=line.match(/[（(]?\s*一天\s*(?:可以)?\s*(?:解)?\s*(\d+)\s*次\s*[）)]?/);if(tm){times=+tm[1];line=line.replace(tm[0],'').trim()}const cm=line.match(/^([^：:]{2,14})[：:]\s*(.+)$/);const ctx=cm?cm[1].trim():'';
  const b=line.match(/買(.+)/),p=line.match(/(?:去|到|前往)([^\s，,。、：:]{1,16})/);let type=chosenType;
  if(type==='auto')type=b?'buy':(p||ctx)?'place':'task';const t={id:uid(),title:line,type,size:sz,times,done:false};if(lineDate)t.date=lineDate;
@@ -811,8 +818,8 @@ function rollLoot(luck,floor){const r=Math.random()*100;let tier=r<2+luck*.4?'le
 function countUp(node,to,ms){return new Promise(r=>{if(reduce){node.textContent=to;return r()}const t0=performance.now();let last=-1;function f(now){const k=Math.min((now-t0)/ms,1);const v=Math.round(to*k);node.textContent=v;if(v!==last&&v%3===0)sfx.blip();last=v;if(k<1)requestAnimationFrame(f);else r()}requestAnimationFrame(f)})}
 function lootCard(loot){const box=el('div','loot r-'+loot.r);const cv=spriteEl(loot.spr,loot.over);const lt=el('div','lt');lt.append(el('span','rar',RAR[loot.r]),el('b',null,loot.name));box.append(cv,lt);return box}
 function showReward(o){return overlay(async(d,close)=>{
- const tt=o.tier==='cat'?['吸貓成功！','pink']:o.tier==='special'?['SPECIAL CLEAR!','']:o.tier==='daily'?['DAILY CLEAR!','sky']:['STAGE CLEAR!',''];d.append(el('div','big-title '+tt[1],tt[0]),el('div','task',o.title));
- if(o.tier==='special')d.append(el('div','combo-tag','特殊獎勵：經驗 ×1.5・保底稀有零食'));
+ const tt=o.tier==='ultimate'?['ULTIMATE CLEAR!!','ult']:o.tier==='cat'?['吸貓成功！','pink']:o.tier==='special'?['SPECIAL CLEAR!','']:o.tier==='daily'?['DAILY CLEAR!','sky']:['STAGE CLEAR!',''];d.append(el('div','big-title '+tt[1],tt[0]),el('div','task',o.title));
+ if(o.tier==='special')d.append(el('div','combo-tag','特殊獎勵：經驗 ×1.5・保底稀有零食'));if(o.tier==='ultimate'){d.append(el('div','combo-tag r-tag-legend','終極獎勵：扭蛋券 ×1・保底史詩以上零食'));setTimeout(()=>{sfx.legend();burst(150,'coin');setTimeout(()=>burst(120),450);buzz([80,40,80,40,200])},350)}
  if(o.combo>1)d.append(el('div','combo-tag','COMBO x'+o.combo+' · 經驗 ×'+o.mult.toFixed(2)));
  const gain=el('div','gain');const xa=el('div','xpv');const xn=el('span',null,'0');xa.append('+',xn,el('span',null,' XP'));
  const ca=el('div','cv');const cn=el('span',null,'0');ca.append(spriteEl('coin'),'+',cn);gain.append(xa,ca);d.append(gain);
@@ -843,9 +850,9 @@ async function completeDaily(id){if(busy)return;const d=S.daily.find(x=>x.id===i
  if(timers[id]){clearInterval(timers[id].iv);delete timers[id]}
  const now=Date.now();S.combo=(S.lastDoneAt&&now-S.lastDoneAt<30*60e3)?S.combo+1:1;S.lastDoneAt=now;
  const mult=Math.min(1+(S.combo-1)*.25,2);const xp=Math.round(SIZE[d.size].xp*mult);const coins=SIZE[d.size].coin+Math.floor(Math.random()*4);
- const loot=rollLoot(SIZE[d.size].luck+(S.combo>2?4:0));const before=levelInfo(S.xp).lv;touchStreak();
+ const ult=d.size==='x';const loot=rollLoot(SIZE[d.size].luck+(S.combo>2?4:0),ult?'epic':undefined);if(ult){S.gacha.tickets++;S.stats.ultimates=(S.stats.ultimates||0)+1}const before=levelInfo(S.xp).lv;touchStreak();
  S.dlog.c[id]=n+1;if(d.once)S.daily=S.daily.filter(x=>x.id!==d.id);S.dlog.dt=S.dlog.dt||{};S.dlog.dt[id]=Date.now();if(/餵貓/.test(d.title)){wkAdd('feeds');S.lastFeed=Date.now()}S.stats.clears++;S.dlog.clears=(S.dlog.clears||0)+1;wkAdd('clears');if(/餵貓/.test(d.title)&&n+1>=d.times&&!S.stats.feedDays.includes(todayStr()))S.stats.feedDays.push(todayStr());S.jar.amt+=3;const gift=checkJar();S.xp+=xp;S.coins+=coins;S.bag[loot.id]=(S.bag[loot.id]||0)+1;logToday(loot.id,xp);save();renderAll();
- await showReward({title:d.title+(d.times>1?'（'+(n+1)+'/'+d.times+'）':''),xp,coins,loot,combo:S.combo,mult,tier:'daily',jar:3});if(/餵貓/.test(d.title))await showCatHappy();
+ await showReward({title:d.title+(d.times>1?'（'+(n+1)+'/'+d.times+'）':''),xp,coins,loot,combo:S.combo,mult,tier:ult?'ultimate':'daily',jar:3});if(/餵貓/.test(d.title))await showCatHappy();
  if(levelInfo(S.xp).lv>before)await showLevelUp(before);if(gift)await showTicket('大禮物兌換券','存錢筒滿了！找奈奈領大禮物','大禮物解鎖！');renderAll();busy=false;afterFlow()}
 function copyText(s,node){const sel=()=>{try{const r=document.createRange();r.selectNodeContents(node);const g=getSelection();g.removeAllRanges();g.addRange(r);toast('已選取，長按就能複製')}catch(e){}};
  try{navigator.clipboard.writeText(s).then(()=>{toast('已複製');sfx.blip()},sel)}catch(e){sel()}}
@@ -1429,6 +1436,7 @@ function drawCatHappy(c,t,fx){roomBg(c);
 function showCatHappy(){return overlay((d,close)=>{d.append(el('div','big-title pink','貓咪吃飽飽！'));const ctx=sceneCanvas(d);d.append(el('div','scene-text','短尾黑貓舔舔手手，超滿足'));let done=false;
  const b=el('button','btn big pink','好可愛 ▶');b.type='button';b.onclick=()=>{done=true;close()};d.append(b);sfx.purr();buzz([20,40,20]);const t0=performance.now(),fx=[];(function loop(now){if(done)return;drawCatHappy(ctx,(now-t0)/1000,fx);requestAnimationFrame(loop)})(t0);b.focus()})}
 setInterval(catCheck,60e3);setTimeout(catCheck,20000);
+BADGES.push(['ultimate1','終極勇者','完成第一個終極任務',()=>(S.stats.ultimates||0)>0]);
 BADGES.push(['week1','週寶箱達人','開過一次週大寶箱',()=>(S.stats.weeks||0)>0],['pack1','收到任務包','收下第一個任務包',()=>(S.packsIn||[]).length>0]);
 
 /* ---------- pages + tab bar ---------- */
@@ -1462,7 +1470,7 @@ function renderCloud(){const n=$('#cloudInfo');if(!n)return;const st=CLOUD.statu
  const li=$('#cloudLogin'),lo=$('#cloudLogout'),nag=$('#cloudNag');if(li)li.hidden=!!u||st==='loading'||st==='nofb';if(lo)lo.hidden=!u;if(nag)nag.hidden=st!=='out'}
 function applyPacks(){S.packs=S.packs||[];S.bossPacks=S.bossPacks||[];
  PACKS.forEach(pk=>{if(S.packs.includes(pk.id))return;const dropT=(pk.drop||[]).concat(pk.tasks.map(x=>x.title));S.tasks=S.tasks.filter(t=>!t.sample&&!(t.done===false&&dropT.includes(t.title)));pk.tasks.forEach(t=>S.tasks.push(Object.assign({id:uid(),done:false},t)));S.packs.push(pk.id)});
- applyDailyPacks();
+ applyDailyPacks();applyFixes();
  BOSS_PACKS.forEach(pk=>{if(S.bossPacks.includes(pk.id))return;const b=pk.boss;S.bosses.unshift({id:uid(),name:b.name,spr:b.spr,mini:!!b.mini,steps:b.steps.map(t=>({t,done:false})),dead:false,kills:0});S.bossPacks.push(pk.id)})}
 function adoptState(o){Object.keys(S).forEach(k=>delete S[k]);Object.assign(S,o);
  if(S.day!==todayStr()){S.tasks=(S.tasks||[]).filter(t=>!t.done).map(t=>Object.assign(t,{carry:true}));S.day=todayStr();S.combo=0}
