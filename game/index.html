@@ -242,6 +242,7 @@ canvas.scene.tap{cursor:pointer;touch-action:none}
 .chain-bar i.on{background:var(--berry);box-shadow:inset 0 -3px 0 #c2445f}
 .chain small{font-size:12px;color:var(--dim)}
 .dlg>*{flex-shrink:0}
+.ver{font-family:var(--f-pixel);font-size:8px;color:var(--dim)}
 .cert{width:100%;background:#fff6dc;color:#4a2a10;border:4px double #b8862e;padding:10px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:14px;animation:pop .4s steps(5)}
 .cert-h{font-size:22px;letter-spacing:.4em;color:#a0281e}
 .cert b{font-weight:400;font-size:19px;color:#a0281e}
@@ -545,6 +546,7 @@ textarea.rep{min-height:52px;font-size:15px}
 
   <div class="foot">
     <button class="btn ghost sm" id="soundBtn" type="button">音效：開</button>
+    <span class="ver">版本 2026-10-29c</span>
     <button class="btn ghost sm" id="resetBtn" type="button">清空今天已完成的關卡</button>
   </div>
 </div>
@@ -1515,7 +1517,10 @@ document.addEventListener('visibilitychange',async()=>{if(document.hidden){if(CL
   try{await au.getRedirectResult(auth)}catch(e){}
   au.onAuthStateChanged(auth,u=>{CLOUD.user=u;if(u)cloudLogin(u);else{CLOUD.ok=false;CLOUD.status='out';renderCloud()}})}
  catch(e){CLOUD.status='nofb';renderCloud()}})();
+const APP_VERSION='2026-10-29c';
 if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+async function checkUpdate(){try{const r=await fetch('version.json?t='+Date.now(),{cache:'no-store'});const j=await r.json();if(j.v&&j.v!==APP_VERSION){let k='';try{k=sessionStorage.getItem('dq-upd')||''}catch(e){}if(k===j.v)return;try{sessionStorage.setItem('dq-upd',j.v)}catch(e){}if(busy||document.querySelector('.overlay')){setTimeout(checkUpdate,5000);return}save();location.reload()}}catch(e){}}
+setTimeout(checkUpdate,3000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});
 
 
 /* ---------- scheduled tasks list ---------- */
@@ -1590,20 +1595,24 @@ function showCeremony(c,loot,makeup){return overlay(async(d,close)=>{const award
  say.textContent=PRAISE_LONG[Math.floor(Math.random()*PRAISE_LONG.length)];
  const cert=el('div','cert');cert.append(el('div','cert-h','獎　狀'),el('div',null,'茲頒發'),el('b',null,'「'+award+'」'),el('div',null,'給 土撥鼠'),el('small',null,'表揚完成連鎖任務「'+c.name+'」'+(makeup?'（補發）':'')),el('small',null,todayStr().replace(/-/g,'/')+'　頒獎人：奈奈'));d.append(cert);
  const ul=el('div','chain-list');(c.titles||chainSteps(c).map(t=>t&&t.title)).forEach((tt,i)=>{if(tt)ul.append(el('div',null,'✓ '+(i+1)+'. '+tt))});d.append(ul);
- const gain=el('div','gain');const xa=el('div','xpv');xa.textContent='+'+CHAIN_RW.xp+' XP';const ca=el('div','cv');ca.append(spriteEl('coin'),'+'+CHAIN_RW.coins);gain.append(xa,ca);d.append(gain,el('div','cheer','另外送你一張扭蛋券'));
- const lc=lootCard(loot);d.append(lc);const b=el('button','btn big pink','我真的很棒 ▶');b.type='button';b.disabled=true;b.style.opacity=.5;b.onclick=()=>{done=true;close()};d.append(b);
+ const gain=el('div','gain');const xa=el('div','xpv');xa.textContent='+'+CHAIN_RW.xp+' XP';const ca=el('div','cv');ca.append(spriteEl('coin'),'+'+CHAIN_RW.coins);gain.append(xa,ca);d.append(gain,el('div','cheer',loot?'另外送你一張扭蛋券':'這份獎勵之前已經入帳，今天補上的是誇獎和獎狀'));
+ const lc=loot?lootCard(loot):el('div');d.append(lc);const b=el('button','btn big pink','我真的很棒 ▶');b.type='button';b.disabled=true;b.style.opacity=.5;b.onclick=()=>{done=true;close()};d.append(b);
  await wait(reduce?100:1600);lc.classList.add('show');sfx.legend();await wait(reduce?50:900);b.disabled=false;b.style.opacity=1;b.focus()})}
-function awardChain(c){const pool=LOOT.filter(l=>l.r==='legend'),loot=pool[Math.floor(Math.random()*pool.length)];c.done=Date.now();
+function awardChain(c){if(c.done)return null;const pool=LOOT.filter(l=>l.r==='legend'),loot=pool[Math.floor(Math.random()*pool.length)];c.done=Date.now();
  S.xp+=CHAIN_RW.xp;S.coins+=CHAIN_RW.coins;S.gacha.tickets++;S.bag[loot.id]=(S.bag[loot.id]||0)+1;logToday(loot.id,CHAIN_RW.xp);S.stats.chains=(S.stats.chains||0)+1;save();return loot}
-async function runAward(c,makeup){const before=levelInfo(S.xp).lv;const loot=awardChain(c);renderAll();busy=true;await showCeremony(c,loot,makeup);if(levelInfo(S.xp).lv>before)await showLevelUp(before);busy=false;renderAll();unlockCheck()}
+async function runAward(c,makeup){const before=levelInfo(S.xp).lv;const loot=awardChain(c);c.praised=Date.now();save();renderAll();busy=true;await showCeremony(c,loot,makeup);if(levelInfo(S.xp).lv>before)await showLevelUp(before);busy=false;renderAll();unlockCheck()}
 // make-up awards: any chain whose steps are all done but never got its ceremony, plus today's cake chain
 function chainMakeup(){const q=[];S.fixes=S.fixes||[];
- if(!S.fixes.includes('2026-10-29-cake-praise')){S.fixes.push('2026-10-29-cake-praise');let c=S.chains.find(x=>x.name==='起酥蛋糕換晚餐大作戰');
-  if(c&&!c.done){chainSteps(c).forEach(t=>{if(t&&!t.done){t.done=true;t.doneAt=Date.now()}});q.push(c)}
-  else if(!c){c={id:uid(),name:'起酥蛋糕換晚餐大作戰',steps:[],titles:['買起酥蛋糕','把起酥蛋糕拿給奈媽','跟奈媽交換到晚餐'],done:false,at:Date.now()};S.chains.push(c);q.push(c)}
-  save()}
- S.chains.forEach(c=>{if(!c.done&&!q.includes(c)&&c.steps.length&&chainSteps(c).every(stepDone)&&chainSteps(c).some(t=>t))q.push(c)});
- if(q.length){let n=0;const go=()=>{if(busy||document.querySelector('.overlay')){if(++n<120)setTimeout(go,1000);return}const c=q.shift();runAward(c,true).then(()=>{if(q.length)setTimeout(go,800)})};setTimeout(go,2600)}}
+ if(!S.fixes.includes('2026-10-29-cake-praise-2')){S.fixes.push('2026-10-29-cake-praise-2');let c=S.chains.find(x=>x.name==='起酥蛋糕換晚餐大作戰');
+  if(!c){c={id:uid(),name:'起酥蛋糕換晚餐大作戰',steps:[],titles:['買起酥蛋糕','把起酥蛋糕拿給奈媽','跟奈媽交換到晚餐'],done:false,at:Date.now()};S.chains.push(c)}
+  chainSteps(c).forEach(t=>{if(t&&!t.done){t.done=true;t.doneAt=Date.now()}});if(!c.praised)q.push(c);save()}
+ S.chains.forEach(c=>{if(q.includes(c)||c.praised)return;const ts=chainSteps(c);if(c.done||(c.steps.length&&ts.every(stepDone)&&ts.some(t=>t)))q.push(c)});
+ if(q.length)queueAwards(q)}
+let awardQ=[],awardRunning=false;
+function queueAwards(list){list.forEach(c=>{if(!awardQ.includes(c))awardQ.push(c)});if(awardRunning)return;awardRunning=true;let n=0;
+ const go=()=>{if(busy||document.querySelector('.overlay')||document.hidden){if(++n<600)setTimeout(go,1000);else awardRunning=false;return}const c=awardQ.shift();if(!c){awardRunning=false;return}
+  runAward(c,true).then(()=>{if(awardQ.length)setTimeout(go,800);else awardRunning=false})};setTimeout(go,2600)}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&S.chains&&S.chains.some(c=>!c.praised&&(c.done||chainSteps(c).every(stepDone)&&chainSteps(c).some(t=>t))))chainMakeup()});
 
 BADGES.push(['chain1','連鎖達人','完成第一個連鎖任務',()=>(S.stats.chains||0)>0]);
 chainMakeup();
