@@ -232,6 +232,16 @@ canvas.scene.tap{cursor:pointer;touch-action:none}
 .drow.ult h3{color:var(--gold);font-size:17px}
 .tag.ult-tag{background:var(--gold);animation:rainbow 2s linear infinite}
 .big-title.ult{color:var(--gold);animation:blink .5s steps(2) 6,rainbow 1.2s linear infinite}
+.chain{padding:10px 12px;display:flex;flex-direction:column;gap:6px;border-color:var(--berry)}
+.chain-top{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.chain-top b{font-weight:400;font-size:16px;flex:1;min-width:0}
+.chain-top .gv{font-family:var(--f-pixel);font-size:10px;color:var(--gold)}
+.tag.chain-tag{background:var(--berry)}
+.chain-bar{display:flex;gap:4px}
+.chain-bar i{flex:1;height:12px;background:var(--outline);display:block}
+.chain-bar i.on{background:var(--berry);box-shadow:inset 0 -3px 0 #c2445f}
+.chain small{font-size:12px;color:var(--dim)}
+.chain-list{font-size:14px;color:var(--grass);text-align:left;display:flex;flex-direction:column;gap:2px}
 .acct{flex-basis:100%;font-size:12px;color:var(--orange)}
 .acct.on{color:var(--grass)}
 .clk-date{font-family:var(--f-zh);font-size:13px;color:var(--sky)}
@@ -413,6 +423,7 @@ textarea.rep{min-height:52px;font-size:15px}
       <span>這些是範例關卡，看完就清掉，換成今天真正要做的事。</span>
       <button class="btn sm pink" id="clearSample" type="button">清掉範例</button>
     </div>
+    <div id="chainBox" class="daily"></div>
     <ol class="stages" id="stages"></ol>
   </section>
 
@@ -454,7 +465,7 @@ textarea.rep{min-height:52px;font-size:15px}
 
   <section class="forge px" aria-labelledby="forgeH">
     <h2 class="h2" id="forgeH"><span>NEW QUEST · 新增任務</span></h2>
-    <label for="taskInput" class="hint">一行一關。寫「去○○」變到點、「買○○」變購買；開頭寫「大：」「小：」可指定份量，寫「一天 3 次」可重複。選 Boss 時，第一行寫名字，下面每行是一步。</label>
+    <label for="taskInput" class="hint">一行一關。寫「去○○」變到點、「買○○」變購買；開頭寫「大：」「小：」可指定份量，寫「一天 3 次」可重複。選 Boss 或連鎖時，第一行寫名字，下面每行是一步。</label>
     <textarea id="taskInput" placeholder="例：&#10;去銀行補摺&#10;買貓砂&#10;回 3 封信"></textarea>
     <div class="opts">
       <div id="dateWrap"><label class="opt-lbl" for="taskDate">日期</label><input type="date" id="taskDate"></div>
@@ -463,6 +474,7 @@ textarea.rep{min-height:52px;font-size:15px}
           <button type="button" data-v="special" aria-pressed="true">今日特殊</button>
           <button type="button" data-v="daily" aria-pressed="false">日常</button>
           <button type="button" data-v="once" aria-pressed="false">一次性</button>
+          <button type="button" data-v="chain" aria-pressed="false">連鎖</button>
           <button type="button" data-v="boss" aria-pressed="false">Boss</button>
         </div>
       </div>
@@ -722,7 +734,7 @@ function renderStages(){const ol=$('#stages');ol.innerHTML='';
  order.forEach((t)=>{const idx=S.tasks.indexOf(t)+1;const li=el('li','stage'+(t.done?' clear':''));li.dataset.id=t.id;
   li.appendChild(el('div','node','1-'+idx));
   const card=el('div','card px');
-  const meta=el('div','meta');if(t.fromPack)meta.append(el('span','tag rep','任務包'));meta.append(el('span','tag special','特殊'),el('span','tag '+t.type,TYPE[t.type].label));if(t.carry)meta.append(el('span','tag carry','昨日遺留'));if(t.report)meta.append(el('span','tag rep','需回報'));
+  const meta=el('div','meta');if(t.fromPack)meta.append(el('span','tag rep','任務包'));if(t.chain){const ch=S.chains.find(c=>c.id===t.chain);if(ch)meta.append(el('span','tag chain-tag','連鎖 '+(t.step+1)+'/'+ch.steps.length))}meta.append(el('span','tag special','特殊'),el('span','tag '+t.type,TYPE[t.type].label));if(t.carry)meta.append(el('span','tag carry','昨日遺留'));if(t.report)meta.append(el('span','tag rep','需回報'));
   meta.append(el('span','xp',SIZE[t.size].label+' · '+(SIZE[t.size].xp+TYPE[t.type].bonus)+'XP'));if(t.sample)meta.append(el('span','ex','範例'));
   card.append(meta,el('h3',null,t.title));
   if(t.place){const w=el('div','where');w.append(paintSmall('pin'),el('span',null,t.place));if(!t.nomap){const a=el('a',null,'開地圖導航 ↗');a.href=mapsUrl(t.mapq||t.place);a.target='_blank';a.rel='noopener';w.append(a)}card.append(w)}
@@ -732,7 +744,7 @@ function renderStages(){const ol=$('#stages');ol.innerHTML='';
   if(t.report&&!t.done){const lab=el('label','rep-lbl',t.ask||'回報內容');lab.htmlFor='rep-'+t.id;const ta=el('textarea','rep');ta.id='rep-'+t.id;ta.rows=2;ta.value=t.reportText||'';ta.placeholder='例：最寬 3.8 公分，一碼 45 元';ta.oninput=()=>{t.reportText=ta.value;save()};card.append(lab,ta)}
   if(t.type==='buy'&&t.item){const w=el('div','where');w.style.color='var(--orange)';w.append(paintSmall('bag'),el('span',null,'清單：'+t.item));card.append(w)}
   if(t.done){card.append(el('div','stamp','CLEAR'));if(t.gotXp){const g=el('div','meta');g.append(el('span','xp','+'+t.gotXp+' XP'));if(t.doneAt)g.append(el('span','ex','完成於 '+(new Date(t.doneAt).toDateString()===new Date().toDateString()?'':(new Date(t.doneAt).getMonth()+1)+'/'+new Date(t.doneAt).getDate()+' ')+hhmm(t.doneAt)));card.append(g)}}
-  else{const act=el('div','actions');const go=el('button','btn '+(t.type==='place'?'sky':t.type==='buy'?'pink':'green'),TYPE[t.type].btn);go.type='button';go.onclick=()=>complete(t.id);
+  else{const act=el('div','actions');const go=el('button','btn '+(t.type==='place'?'sky':t.type==='buy'?'pink':'green'),TYPE[t.type].btn);go.type='button';go.onclick=()=>complete(t.id);if(chainLocked(t)){go.textContent='先完成上一步';go.classList.add('ghost');go.disabled=true}
    const x=el('button','x','移除');x.type='button';x.onclick=()=>{S.tasks=S.tasks.filter(z=>z.id!==t.id);save();renderAll()};
    act.append(go,x);card.append(act);
 }
@@ -752,7 +764,7 @@ function renderDaily(){const box=$('#dailyList');box.innerHTML='';
    const x=el('button','x','移除');x.type='button';x.onclick=()=>{S.daily=S.daily.filter(z=>z.id!==d.id);save();renderAll()};act.append(go,st,x);r.append(act);
    const tb=el('div','timer');tb.hidden=!timers[d.id];tb.appendChild(el('i'));r.append(tb)}
   box.appendChild(r)})}
-function renderAll(){if(promoteFuture())setTimeout(()=>toast('今天的預定任務到了，出現在今日特殊'),300);grantTickets();renderFuture();if(S.dlog.day!==todayStr()){S.dlog={day:todayStr(),c:{}};save()}renderHUD();renderStages();renderDaily();renderBosses();renderShop();renderMeals();renderWardrobe();renderSaveInfo();renderWeek();renderTabs();renderBag();$('#soundBtn').textContent='音效：'+(S.sound?'開':'關')}
+function renderAll(){if(typeof renderChains==='function')setTimeout(renderChains,0);if(promoteFuture())setTimeout(()=>toast('今天的預定任務到了，出現在今日特殊'),300);grantTickets();renderFuture();if(S.dlog.day!==todayStr()){S.dlog={day:todayStr(),c:{}};save()}renderHUD();renderStages();renderDaily();renderBosses();renderShop();renderMeals();renderWardrobe();renderSaveInfo();renderWeek();renderTabs();renderBag();$('#soundBtn').textContent='音效：'+(S.sound?'開':'關')}
 
 /* ---------- input ---------- */
 let chosenType='auto',chosenSize='s',chosenTier='special';
@@ -767,6 +779,7 @@ function parse(line){line=line.replace(/^\s*\d+\s*[\.\)、．]\s*/,'');let lineD
  if(/回報/.test(line)){t.report=true;t.ask='回報內容'}return t}
 $('#addBtn').onclick=()=>{const lines=$('#taskInput').value.split(/\n+/).map(s=>s.trim()).filter(Boolean);
  if(!lines.length){toast('先寫一件事就好，一件就能開局');return}
+ if(chosenTier==='chain'){const nm=lines[0].replace(/^\s*\d+\s*[\.\)、．]\s*/,'');const ts=lines.slice(1).map(l=>parse(l));if(ts.length<2){toast('連鎖至少要兩步：第一行寫名字，下面每行一步');return}if(S.tasks.some(t=>t.sample))S.tasks=S.tasks.filter(t=>!t.sample);ts.forEach(t=>{delete t.date;S.tasks.push(t)});makeChain(nm,ts);$('#taskInput').value='';save();renderAll();sfx.pick();toast('連鎖任務「'+nm+'」開好了，全部完成有大獎');return}
  if(chosenTier==='boss'){const steps=lines.slice(1).map(l=>l.replace(/^\s*\d+\s*[\.\)、．]\s*/,'')).filter(Boolean);if(!steps.length){toast('Boss 至少要有一步：第一行名字，下面每行一步');return}
   S.bosses.push({id:uid(),name:lines[0].replace(/^\s*\d+\s*[\.\)、．]\s*/,''),spr:Math.random()<.5?'slime':'demon',steps:steps.map(t=>({t,done:false})),dead:false,kills:0});$('#taskInput').value='';save();renderAll();sfx.hit();toast('野生的 Boss 出現了！');return}
  let futN=0;if(chosenTier==='special'&&S.tasks.some(t=>t.sample))S.tasks=S.tasks.filter(t=>!t.sample);
@@ -857,6 +870,7 @@ async function completeDaily(id){if(busy)return;const d=S.daily.find(x=>x.id===i
 function copyText(s,node){const sel=()=>{try{const r=document.createRange();r.selectNodeContents(node);const g=getSelection();g.removeAllRanges();g.addRange(r);toast('已選取，長按就能複製')}catch(e){}};
  try{navigator.clipboard.writeText(s).then(()=>{toast('已複製');sfx.blip()},sel)}catch(e){sel()}}
 async function complete(id){if(busy)return;const t=S.tasks.find(x=>x.id===id);if(!t||t.done)return;
+ if(typeof chainLocked==='function'&&chainLocked(t)){sfx.blip();toast('這是連鎖任務，要先完成上一步喔');return}
  if(t.report&&!(t.reportText||'').trim()){const ta=document.getElementById('rep-'+id);if(ta){ta.focus();ta.scrollIntoView({block:'center'})}sfx.blip();toast('這關要先寫回報，寫完再過關');return}
  busy=true;
  if(timers[id]){clearInterval(timers[id].iv);delete timers[id]}
@@ -870,6 +884,7 @@ async function complete(id){if(busy)return;const t=S.tasks.find(x=>x.id===id);if
  renderAll();
  await showReward({title:t.title,xp,coins,loot,combo:S.combo,mult,tier:'special'});
  if(levelInfo(S.xp).lv>before)await showLevelUp(before);
+ await chainCheck(t);
  if(S.tasks.length&&S.tasks.every(x=>x.done)&&S.allClear!==td){const bonus=60+S.tasks.length*10;const before2=levelInfo(S.xp).lv;const l2=rollLoot(10,'rare');S.xp+=bonus;S.bag[l2.id]=(S.bag[l2.id]||0)+1;logToday(l2.id,bonus);S.allClear=td;S.stats.allClears++;save();renderAll();
   await showAllClear(l2,bonus);if(levelInfo(S.xp).lv>before2)await showLevelUp(before2)}
  renderAll();busy=false;afterFlow()}
@@ -1399,12 +1414,14 @@ function packDecode(s){const m=(s||'').match(/DQP1:([A-Za-z0-9+/=\s]+)/);if(!m)t
 const NUM_RE=/^\s*\d+\s*[\.\)、．]\s*/;
 $('#packMake').onclick=()=>{const lines=$('#taskInput').value.split(/\n+/).map(s=>s.trim()).filter(Boolean);if(!lines.length){toast('先在上面寫任務，一行一個');return}
  const pack={id:uid()+uid(),tier:chosenTier,at:Date.now()};
- if(chosenTier==='boss'){const steps=lines.slice(1).map(l=>l.replace(NUM_RE,'')).filter(Boolean);if(!steps.length){toast('Boss 至少要有一步：第一行名字，下面每行一步');return}pack.boss={name:lines[0].replace(NUM_RE,''),steps}}
+ if(chosenTier==='chain'){const steps=lines.slice(1).map(l=>{const t=parse(l);delete t.id;delete t.done;delete t.date;return t});if(steps.length<2){toast('連鎖至少要兩步：第一行寫名字，下面每行一步');return}pack.chain={name:lines[0].replace(NUM_RE,''),steps}}
+ else if(chosenTier==='boss'){const steps=lines.slice(1).map(l=>l.replace(NUM_RE,'')).filter(Boolean);if(!steps.length){toast('Boss 至少要有一步：第一行名字，下面每行一步');return}pack.boss={name:lines[0].replace(NUM_RE,''),steps}}
  else pack.items=lines.map(l=>{const t=parse(l);delete t.id;delete t.done;return t});
  const code=packEncode(pack);let out=$('#packOut');if(!out){out=el('pre');out.id='packOut';$('#addBtn').parentNode.after(out)}out.textContent=code;copyText(code,out);toast('任務包代碼已複製，傳給對方貼到「收藏」分頁的任務包代碼')};
 $('#packImport').onclick=async()=>{if(busy)return;let p;try{p=packDecode($('#packInput').value)}catch(e){toast('這不是有效的任務包代碼，確認有完整複製');return}
  S.packsIn=S.packsIn||[];if(S.packsIn.includes(p.id)){toast('這個任務包已經收過了');return}S.packsIn.push(p.id);let n=0,desc='';
- if(p.tier==='boss'&&p.boss){S.bosses.unshift({id:uid(),name:p.boss.name,spr:Math.random()<.5?'slime':'demon',steps:p.boss.steps.map(t=>({t,done:false})),dead:false,kills:0});desc='Boss：'+p.boss.name}
+ if(p.tier==='chain'&&p.chain){const ts=p.chain.steps.map(t=>Object.assign({},t,{id:uid(),done:false,fromPack:true}));ts.forEach(t=>S.tasks.push(t));makeChain(p.chain.name,ts);desc='連鎖任務：'+p.chain.name}
+ else if(p.tier==='boss'&&p.boss){S.bosses.unshift({id:uid(),name:p.boss.name,spr:Math.random()<.5?'slime':'demon',steps:p.boss.steps.map(t=>({t,done:false})),dead:false,kills:0});desc='Boss：'+p.boss.name}
  else if(p.tier==='daily'||p.tier==='once'){(p.items||[]).forEach(t=>{S.daily.push({id:uid(),title:t.title,size:t.size||'s',times:t.times||1,once:p.tier==='once'});n++});desc=n+' 個'+(p.tier==='once'?'一次性':'日常')+'任務'}
  else{let fn=0;(p.items||[]).forEach(t=>{const nt=Object.assign({},t,{id:uid(),done:false,fromPack:true});if(nt.date&&nt.date>todayStr()){S.future.push(nt);fn++}else S.tasks.push(nt);n++});desc=n+' 個特殊任務'+(fn?'（其中 '+fn+' 個是之後日子的預定任務）':'')}
  save();$('#packInput').value='';renderAll();busy=true;await showChest('收到任務包！',desc,'已經放進「'+(p.tier==='boss'?'冒險':'今日')+'」分頁',false);busy=false;showPage(p.tier==='boss'?'adv':'today');unlockCheck()};
@@ -1476,7 +1493,7 @@ function adoptState(o){Object.keys(S).forEach(k=>delete S[k]);Object.assign(S,o)
  if(S.day!==todayStr()){S.tasks=(S.tasks||[]).filter(t=>!t.done).map(t=>Object.assign(t,{carry:true}));S.day=todayStr();S.combo=0}
  S.tasks=S.tasks||[];S.daily=S.daily||[];S.bag=S.bag||{};S.bosses=S.bosses||[];if(!S.dlog||S.dlog.day!==todayStr())S.dlog={day:todayStr(),c:{}};
  S.coupons=S.coupons||[];S.jar=S.jar||{amt:0,done:0};S.stats=Object.assign({clears:0,starts:0,allClears:0,feedDays:[],mealDays:[]},S.stats||{});S.badges=S.badges||{};S.sets=S.sets||{};S.catDex=S.catDex||{};
- S.gacha=Object.assign({tickets:0,lvT:0,owned:{},skin:'',acc:''},S.gacha||{});S.future=S.future||[];applyPacks();promoteFuture();
+ S.gacha=Object.assign({tickets:0,lvT:0,owned:{},skin:'',acc:''},S.gacha||{});S.future=S.future||[];applyPacks();if(typeof applyChainPacks==='function')applyChainPacks();promoteFuture();
  try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}idbSet(JSON.stringify(S));paintHero(false);renderAll()}
 async function cloudRead(u){const snap=await FB.get(FB.ref(FB.db,CLOUD_PATH+u.uid));if(!snap.exists())return null;try{const o=JSON.parse(snap.val().json);return o&&typeof o.xp==='number'?o:null}catch(e){return null}}
 async function cloudLogin(u){CLOUD.status='checking';renderCloud();let cs=null;try{cs=await cloudRead(u)}catch(e){CLOUD.status=permErr(e)?'denied':'error';renderCloud();return}
@@ -1505,6 +1522,42 @@ function renderFuture(){const sec=$('#futSec');if(!sec)return;const list=$('#fut
 
 /* ---------- event pacing: at most one random pop-up every 8 minutes ---------- */
 var EV={last:0};function evOk(){return Date.now()-EV.last>8*60e3}function evMark(){EV.last=Date.now()}
+
+/* ---------- quest chains: do every step to win a big bonus ---------- */
+S.chains=S.chains||[];
+const CHAIN_RW={xp:200,coins:60};
+const PRAISE=['你怎麼那麼棒！！','根本是任務之神！','奈奈超感動！','這就是傳說中的行動力！','土撥鼠界的英雄！'];
+function chainSteps(c){return c.steps.map(id=>S.tasks.find(t=>t.id===id))}
+function stepDone(t){return !t||t.done}
+function makeChain(name,stepTasks,extra){const c=Object.assign({id:uid(),name,steps:[],done:false,at:Date.now()},extra||{});stepTasks.forEach((t,i)=>{t.chain=c.id;t.step=i;c.steps.push(t.id)});S.chains.push(c);return c}
+const CHAIN_PACKS=[{id:'2026-10-29-cake-chain',name:'起酥蛋糕換晚餐大作戰',steps:[
+ {title:'買起酥蛋糕',type:'buy',item:'起酥蛋糕',size:'l'},
+ {title:'把起酥蛋糕拿給奈媽',type:'task',size:'m'},
+ {title:'跟奈媽交換到晚餐',type:'task',size:'m',note:'拿蛋糕換一頓晚餐回來'}]}];
+function applyChainPacks(){S.chains=S.chains||[];S.chainPacks=S.chainPacks||[];
+ CHAIN_PACKS.forEach(pk=>{if(S.chainPacks.includes(pk.id))return;const ts=pk.steps.map(st=>{const ex=S.tasks.find(t=>t.title===st.title&&!t.chain);if(ex){ex.size=st.size;return ex}const nt=Object.assign({id:uid(),done:false},st);S.tasks.push(nt);return nt});
+  const first=ts[0];S.tasks=S.tasks.filter(t=>!ts.includes(t));const at=S.tasks.length;S.tasks.splice(at,0,...ts);makeChain(pk.name,ts);S.chainPacks.push(pk.id)});save()}
+applyChainPacks();
+function renderChains(){const box=$('#chainBox');if(!box)return;box.innerHTML='';
+ S.chains.filter(c=>!c.done&&chainSteps(c).some(t=>t)).forEach(c=>{const ts=chainSteps(c),n=ts.filter(stepDone).length;const b=el('div','chain px');
+  const top=el('div','chain-top');top.append(el('span','tag chain-tag','連鎖任務'),el('b',null,c.name),el('span','gv',n+' / '+ts.length));b.append(top);
+  const bar=el('div','chain-bar');ts.forEach(t=>bar.append(el('i',stepDone(t)?'on':'')));b.append(bar);
+  b.append(el('small',null,'全部完成：'+CHAIN_RW.xp+' XP・'+CHAIN_RW.coins+' 金幣・扭蛋券・保底傳說零食'));box.append(b)})}
+function chainLocked(t){if(!t.chain||!t.step)return false;const c=S.chains.find(x=>x.id===t.chain);if(!c)return false;return !c.steps.slice(0,t.step).every(id=>stepDone(S.tasks.find(x=>x.id===id)))}
+function drawPraise(c,t){c.fillStyle='#2d1840';c.fillRect(0,0,160,90);c.save();c.translate(80,52);c.rotate(t*.5);c.fillStyle='hsla('+((t*90)%360)+',90%,60%,.28)';for(let i=0;i<12;i+=2){c.beginPath();c.moveTo(0,0);c.arc(0,0,130,i*Math.PI/6,(i+1)*Math.PI/6);c.closePath();c.fill()}c.restore();
+ c.fillStyle='#110b24';c.fillRect(48,80,64,4);const y=30-Math.abs(Math.sin(t*5))*8;drawHeroLook(c,'heroHappy',56,y,3,heroLook());drawRows(c,ACC.crownTop.rows,56+4*3,y-5*3+0,3);
+ for(let i=0;i<10;i++){if((Math.floor(t*6)+i)%3)continue;const a=i*.63+t*1.5,r=40+Math.sin(t*3+i)*5,sx=Math.round(80+Math.cos(a)*r*1.3),sy=Math.round(46+Math.sin(a)*r*.7);c.fillStyle='#ffc94a';c.fillRect(sx-1,sy,3,1);c.fillRect(sx,sy-1,1,3)}}
+function showChainComplete(c,loot){return overlay(async(d,close)=>{const ttl=el('div','big-title ult',PRAISE[Math.floor(Math.random()*PRAISE.length)]);d.append(ttl,el('div','combo-tag r-tag-legend','連鎖任務完成：'+c.name));
+ const cv=el('canvas','scene');cv.width=160;cv.height=90;d.append(cv);const ctx=cv.getContext('2d');let done=false;const t0=performance.now();(function loop(now){if(done)return;drawPraise(ctx,(now-t0)/1000);requestAnimationFrame(loop)})(t0);
+ const ul=el('div','chain-list');chainSteps(c).forEach((t,i)=>{if(t)ul.append(el('div',null,'✓ '+(i+1)+'. '+t.title))});d.append(ul);
+ const gain=el('div','gain');const xa=el('div','xpv');xa.textContent='+'+CHAIN_RW.xp+' XP';const ca=el('div','cv');ca.append(spriteEl('coin'),'+'+CHAIN_RW.coins);gain.append(xa,ca);d.append(gain);d.append(el('div','cheer','另外送你一張扭蛋券'));
+ const lc=lootCard(loot);d.append(lc);const b=el('button','btn big pink','我真的很棒 ▶');b.type='button';b.onclick=()=>{done=true;close()};d.append(b);
+ sfx.legend();setTimeout(()=>sfx.level(),500);burst(160,'coin');setTimeout(()=>burst(140),500);setTimeout(()=>burst(120),1000);buzz([80,40,80,40,80,40,250]);await wait(900);lc.classList.add('show');b.focus()})}
+async function chainCheck(t){if(!t.chain)return;const c=S.chains.find(x=>x.id===t.chain);if(!c||c.done)return;if(!chainSteps(c).every(stepDone))return;
+ c.done=Date.now();const before=levelInfo(S.xp).lv;const pool=LOOT.filter(l=>l.r==='legend'),loot=pool[Math.floor(Math.random()*pool.length)];
+ S.xp+=CHAIN_RW.xp;S.coins+=CHAIN_RW.coins;S.gacha.tickets++;S.bag[loot.id]=(S.bag[loot.id]||0)+1;logToday(loot.id,CHAIN_RW.xp);S.stats.chains=(S.stats.chains||0)+1;save();renderAll();
+ await showChainComplete(c,loot);if(levelInfo(S.xp).lv>before)await showLevelUp(before)}
+BADGES.push(['chain1','連鎖達人','完成第一個連鎖任務',()=>(S.stats.chains||0)>0]);
 
 setInterval(renderHUD,30e3);
 renderAll();
