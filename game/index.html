@@ -458,6 +458,7 @@ textarea.rep{min-height:52px;font-size:15px}
         <div class="seg-group" id="tierSeg" role="group" aria-label="任務階級">
           <button type="button" data-v="special" aria-pressed="true">今日特殊</button>
           <button type="button" data-v="daily" aria-pressed="false">日常</button>
+          <button type="button" data-v="once" aria-pressed="false">一次性</button>
           <button type="button" data-v="boss" aria-pressed="false">Boss</button>
         </div>
       </div>
@@ -631,10 +632,18 @@ const PACKS=[{id:'2026-10-22-yongle-v3',drop:OLD_V1,tasks:[
  {title:'拿王小奈的合包包裹',type:'task',place:'新莊 巧巧郎自取店',nomap:true,size:'s',note:'取件人：王小奈（合包）'},
  {title:'到萬隆鼠家',type:'place',place:'萬隆鼠家',nomap:true,size:'m'},
  {title:'確認日本包裹',type:'task',place:'萬隆鼠家',nomap:true,size:'s',note:'黑貓快遞，目前還沒到',code:'902422745250',codeLabel:'黑貓單號'}
+]},{id:'2026-10-29-special',tasks:[
+ {title:'買做尾巴的塑膠管',type:'buy',item:'做尾巴的塑膠管',size:'m'},
+ {title:'買道具的繩子',type:'buy',item:'道具用的繩子',size:'m'},
+ {title:'買起酥蛋糕',type:'buy',item:'起酥蛋糕',size:'s'},
+ {title:'帶奈奈吃午餐',type:'task',size:'m'},
+ {title:'把奈的午餐拿回家冰起來',type:'task',size:'s',note:'帶回家後放進冰箱'}
 ]}];
 S.packs=S.packs||[];
 const DAILY_DEFAULT=[['清桌上的垃圾','s'],['撿地上的垃圾','s'],['掃地','m'],['洗衣服','m'],['整理冰箱','m'],['丟掉過期食物','s'],['收拾陽台的 5 隻襪子','s'],['餵貓','s',3],['完成一支短影片','l'],['完成一支長影片','l']];
-if(!S.daily)S.daily=DAILY_DEFAULT.map(d=>({id:uid(),title:d[0],size:d[1],times:d[2]||1}));
+const DAILY_PACKS=[{id:'2026-10-29-once',items:[{title:'整理廁所、清貓大便',size:'m'},{title:'殺螞蟻',size:'s'}]}];
+function applyDailyPacks(){S.dailyPacks=S.dailyPacks||[];DAILY_PACKS.forEach(pk=>{if(S.dailyPacks.includes(pk.id))return;pk.items.forEach(it=>S.daily.push({id:uid(),title:it.title,size:it.size,times:1,once:true}));S.dailyPacks.push(pk.id)})}
+if(!S.daily)S.daily=DAILY_DEFAULT.map(d=>({id:uid(),title:d[0],size:d[1],times:d[2]||1}));applyDailyPacks();
 if(!S.dlog||S.dlog.day!==todayStr())S.dlog={day:todayStr(),c:{}};
 S.coupons=S.coupons||[];S.stats=S.stats||{};S.stats.clears=S.stats.clears||0;S.stats.starts=S.stats.starts||0;S.stats.allClears=S.stats.allClears||0;S.stats.feedDays=S.stats.feedDays||[];S.badges=S.badges||{};S.sets=S.sets||{};S.catDex=S.catDex||{};S.jar=S.jar||{amt:0,done:0};
 if(!S.bosses)S.bosses=[{id:uid(),name:'短影片史萊姆',spr:'slime',steps:['找素材','剪輯','上字幕','做封面','上傳']},{id:uid(),name:'長影片巨魔',spr:'demon',steps:['寫大綱','粗剪','精剪','上字幕','做封面','上傳']}].map(b=>Object.assign(b,{steps:b.steps.map(t=>({t,done:false})),dead:false,kills:0}));
@@ -728,7 +737,7 @@ function renderBag(){const g=$('#bagGrid');g.innerHTML='';let tot=0,got=0;
 function renderDaily(){const box=$('#dailyList');box.innerHTML='';
  if(!S.daily.length){box.appendChild(el('div','empty','還沒有日常任務。在下方新增時選「日常」。'));return}
  S.daily.forEach(d=>{const n=dcount(d.id),full=n>=d.times;const r=el('div','drow px'+(full?' full':''));r.dataset.id=d.id;
-  const top=el('div','top');top.append(el('h3',null,d.title),el('span','meta-xp',SIZE[d.size].label+' · '+SIZE[d.size].xp+'XP'));
+  const top=el('div','top');if(d.once)top.append(el('span','tag rep','一次性'));top.append(el('h3',null,d.title),el('span','meta-xp',SIZE[d.size].label+' · '+SIZE[d.size].xp+'XP'));
   if(d.times>1){const pp=el('span','pips');for(let i=0;i<d.times;i++)pp.append(el('i',i<n?'on':''));top.append(pp)}
   const lastT=(S.dlog.dt||{})[d.id];if(full)top.append(el('span','dstamp','今日 CLEAR'+(lastT?' '+hhmm(lastT):'')));else if(lastT)top.append(el('span','dstamp dlast','上次 '+hhmm(lastT)));r.append(top);
   if(!full){const act=el('div','actions');const go=el('button','btn green sm',d.times>1?'完成（第 '+(n+1)+' 次）':'完成！');go.type='button';go.onclick=()=>completeDaily(d.id);
@@ -754,7 +763,7 @@ $('#addBtn').onclick=()=>{const lines=$('#taskInput').value.split(/\n+/).map(s=>
  if(chosenTier==='boss'){const steps=lines.slice(1).map(l=>l.replace(/^\s*\d+\s*[\.\)、．]\s*/,'')).filter(Boolean);if(!steps.length){toast('Boss 至少要有一步：第一行名字，下面每行一步');return}
   S.bosses.push({id:uid(),name:lines[0].replace(/^\s*\d+\s*[\.\)、．]\s*/,''),spr:Math.random()<.5?'slime':'demon',steps:steps.map(t=>({t,done:false})),dead:false,kills:0});$('#taskInput').value='';save();renderAll();sfx.hit();toast('野生的 Boss 出現了！');return}
  let futN=0;if(chosenTier==='special'&&S.tasks.some(t=>t.sample))S.tasks=S.tasks.filter(t=>!t.sample);
- const pick=($('#taskDate')||{}).value||'';lines.forEach(l=>{const t=parse(l);if(chosenTier!=='daily'&&!t.date&&pick&&pick!==todayStr())t.date=pick;if(chosenTier!=='daily'&&t.date&&t.date>todayStr()){S.future.push(t);futN++;return}if(chosenTier==='daily')S.daily.push({id:t.id,title:t.title,size:t.size,times:t.times||1});else S.tasks.push(t)});$('#taskInput').value='';save();renderAll();sfx.pick();toast(futN?(futN===lines.length?'已排進預定任務，當天會自動出現':'新增了 '+(lines.length-futN)+' 個今天的任務，'+futN+' 個排進預定任務'):'新增了 '+lines.length+' 個'+(chosenTier==='daily'?'日常':'特殊')+'任務，出發！');burst(20)};
+ const pick=($('#taskDate')||{}).value||'';lines.forEach(l=>{const t=parse(l);if(chosenTier!=='daily'&&chosenTier!=='once'&&!t.date&&pick&&pick!==todayStr())t.date=pick;if(chosenTier!=='daily'&&chosenTier!=='once'&&t.date&&t.date>todayStr()){S.future.push(t);futN++;return}if(chosenTier==='daily'||chosenTier==='once')S.daily.push({id:t.id,title:t.title,size:t.size,times:t.times||1,once:chosenTier==='once'});else S.tasks.push(t)});$('#taskInput').value='';save();renderAll();sfx.pick();toast(futN?(futN===lines.length?'已排進預定任務，當天會自動出現':'新增了 '+(lines.length-futN)+' 個今天的任務，'+futN+' 個排進預定任務'):'新增了 '+lines.length+' 個'+({daily:'日常',once:'一次性'}[chosenTier]||'特殊')+'任務，出發！');burst(20)};
 $('#clearSample').onclick=()=>{S.tasks=S.tasks.filter(t=>!t.sample);save();renderAll();$('#taskInput').focus()};
 $('#diceBtn').onclick=()=>{const left=S.tasks.filter(t=>!t.done).concat(S.daily.filter(d=>dcount(d.id)<d.times));if(!left.length){toast('今天的任務都破完了，休息也算一種勝利');return}
  const t=left[Math.floor(Math.random()*left.length)];const li=document.querySelector('[data-id="'+t.id+'"]');sfx.pick();
@@ -835,7 +844,7 @@ async function completeDaily(id){if(busy)return;const d=S.daily.find(x=>x.id===i
  const now=Date.now();S.combo=(S.lastDoneAt&&now-S.lastDoneAt<30*60e3)?S.combo+1:1;S.lastDoneAt=now;
  const mult=Math.min(1+(S.combo-1)*.25,2);const xp=Math.round(SIZE[d.size].xp*mult);const coins=SIZE[d.size].coin+Math.floor(Math.random()*4);
  const loot=rollLoot(SIZE[d.size].luck+(S.combo>2?4:0));const before=levelInfo(S.xp).lv;touchStreak();
- S.dlog.c[id]=n+1;S.dlog.dt=S.dlog.dt||{};S.dlog.dt[id]=Date.now();if(/餵貓/.test(d.title)){wkAdd('feeds');S.lastFeed=Date.now()}S.stats.clears++;S.dlog.clears=(S.dlog.clears||0)+1;wkAdd('clears');if(/餵貓/.test(d.title)&&n+1>=d.times&&!S.stats.feedDays.includes(todayStr()))S.stats.feedDays.push(todayStr());S.jar.amt+=3;const gift=checkJar();S.xp+=xp;S.coins+=coins;S.bag[loot.id]=(S.bag[loot.id]||0)+1;logToday(loot.id,xp);save();renderAll();
+ S.dlog.c[id]=n+1;if(d.once)S.daily=S.daily.filter(x=>x.id!==d.id);S.dlog.dt=S.dlog.dt||{};S.dlog.dt[id]=Date.now();if(/餵貓/.test(d.title)){wkAdd('feeds');S.lastFeed=Date.now()}S.stats.clears++;S.dlog.clears=(S.dlog.clears||0)+1;wkAdd('clears');if(/餵貓/.test(d.title)&&n+1>=d.times&&!S.stats.feedDays.includes(todayStr()))S.stats.feedDays.push(todayStr());S.jar.amt+=3;const gift=checkJar();S.xp+=xp;S.coins+=coins;S.bag[loot.id]=(S.bag[loot.id]||0)+1;logToday(loot.id,xp);save();renderAll();
  await showReward({title:d.title+(d.times>1?'（'+(n+1)+'/'+d.times+'）':''),xp,coins,loot,combo:S.combo,mult,tier:'daily',jar:3});if(/餵貓/.test(d.title))await showCatHappy();
  if(levelInfo(S.xp).lv>before)await showLevelUp(before);if(gift)await showTicket('大禮物兌換券','存錢筒滿了！找奈奈領大禮物','大禮物解鎖！');renderAll();busy=false;afterFlow()}
 function copyText(s,node){const sel=()=>{try{const r=document.createRange();r.selectNodeContents(node);const g=getSelection();g.removeAllRanges();g.addRange(r);toast('已選取，長按就能複製')}catch(e){}};
@@ -1389,7 +1398,7 @@ $('#packMake').onclick=()=>{const lines=$('#taskInput').value.split(/\n+/).map(s
 $('#packImport').onclick=async()=>{if(busy)return;let p;try{p=packDecode($('#packInput').value)}catch(e){toast('這不是有效的任務包代碼，確認有完整複製');return}
  S.packsIn=S.packsIn||[];if(S.packsIn.includes(p.id)){toast('這個任務包已經收過了');return}S.packsIn.push(p.id);let n=0,desc='';
  if(p.tier==='boss'&&p.boss){S.bosses.unshift({id:uid(),name:p.boss.name,spr:Math.random()<.5?'slime':'demon',steps:p.boss.steps.map(t=>({t,done:false})),dead:false,kills:0});desc='Boss：'+p.boss.name}
- else if(p.tier==='daily'){(p.items||[]).forEach(t=>{S.daily.push({id:uid(),title:t.title,size:t.size||'s',times:t.times||1});n++});desc=n+' 個日常任務'}
+ else if(p.tier==='daily'||p.tier==='once'){(p.items||[]).forEach(t=>{S.daily.push({id:uid(),title:t.title,size:t.size||'s',times:t.times||1,once:p.tier==='once'});n++});desc=n+' 個'+(p.tier==='once'?'一次性':'日常')+'任務'}
  else{let fn=0;(p.items||[]).forEach(t=>{const nt=Object.assign({},t,{id:uid(),done:false,fromPack:true});if(nt.date&&nt.date>todayStr()){S.future.push(nt);fn++}else S.tasks.push(nt);n++});desc=n+' 個特殊任務'+(fn?'（其中 '+fn+' 個是之後日子的預定任務）':'')}
  save();$('#packInput').value='';renderAll();busy=true;await showChest('收到任務包！',desc,'已經放進「'+(p.tier==='boss'?'冒險':'今日')+'」分頁',false);busy=false;showPage(p.tier==='boss'?'adv':'today');unlockCheck()};
 
@@ -1453,6 +1462,7 @@ function renderCloud(){const n=$('#cloudInfo');if(!n)return;const st=CLOUD.statu
  const li=$('#cloudLogin'),lo=$('#cloudLogout'),nag=$('#cloudNag');if(li)li.hidden=!!u||st==='loading'||st==='nofb';if(lo)lo.hidden=!u;if(nag)nag.hidden=st!=='out'}
 function applyPacks(){S.packs=S.packs||[];S.bossPacks=S.bossPacks||[];
  PACKS.forEach(pk=>{if(S.packs.includes(pk.id))return;const dropT=(pk.drop||[]).concat(pk.tasks.map(x=>x.title));S.tasks=S.tasks.filter(t=>!t.sample&&!(t.done===false&&dropT.includes(t.title)));pk.tasks.forEach(t=>S.tasks.push(Object.assign({id:uid(),done:false},t)));S.packs.push(pk.id)});
+ applyDailyPacks();
  BOSS_PACKS.forEach(pk=>{if(S.bossPacks.includes(pk.id))return;const b=pk.boss;S.bosses.unshift({id:uid(),name:b.name,spr:b.spr,mini:!!b.mini,steps:b.steps.map(t=>({t,done:false})),dead:false,kills:0});S.bossPacks.push(pk.id)})}
 function adoptState(o){Object.keys(S).forEach(k=>delete S[k]);Object.assign(S,o);
  if(S.day!==todayStr()){S.tasks=(S.tasks||[]).filter(t=>!t.done).map(t=>Object.assign(t,{carry:true}));S.day=todayStr();S.combo=0}
