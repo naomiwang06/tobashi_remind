@@ -241,6 +241,11 @@ canvas.scene.tap{cursor:pointer;touch-action:none}
 .chain-bar i{flex:1;height:12px;background:var(--outline);display:block}
 .chain-bar i.on{background:var(--berry);box-shadow:inset 0 -3px 0 #c2445f}
 .chain small{font-size:12px;color:var(--dim)}
+.dlg>*{flex-shrink:0}
+.cert{width:100%;background:#fff6dc;color:#4a2a10;border:4px double #b8862e;padding:10px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:14px;animation:pop .4s steps(5)}
+.cert-h{font-size:22px;letter-spacing:.4em;color:#a0281e}
+.cert b{font-weight:400;font-size:19px;color:#a0281e}
+.cert small{font-size:11px;color:#7a5a30}
 .chain-list{font-size:14px;color:var(--grass);text-align:left;display:flex;flex-direction:column;gap:2px}
 .acct{flex-basis:100%;font-size:12px;color:var(--orange)}
 .acct.on{color:var(--grass)}
@@ -1553,11 +1558,55 @@ function showChainComplete(c,loot){return overlay(async(d,close)=>{const ttl=el(
  const gain=el('div','gain');const xa=el('div','xpv');xa.textContent='+'+CHAIN_RW.xp+' XP';const ca=el('div','cv');ca.append(spriteEl('coin'),'+'+CHAIN_RW.coins);gain.append(xa,ca);d.append(gain);d.append(el('div','cheer','另外送你一張扭蛋券'));
  const lc=lootCard(loot);d.append(lc);const b=el('button','btn big pink','我真的很棒 ▶');b.type='button';b.onclick=()=>{done=true;close()};d.append(b);
  sfx.legend();setTimeout(()=>sfx.level(),500);burst(160,'coin');setTimeout(()=>burst(140),500);setTimeout(()=>burst(120),1000);buzz([80,40,80,40,80,40,250]);await wait(900);lc.classList.add('show');b.focus()})}
-async function chainCheck(t){if(!t.chain)return;const c=S.chains.find(x=>x.id===t.chain);if(!c||c.done)return;if(!chainSteps(c).every(stepDone))return;
- c.done=Date.now();const before=levelInfo(S.xp).lv;const pool=LOOT.filter(l=>l.r==='legend'),loot=pool[Math.floor(Math.random()*pool.length)];
- S.xp+=CHAIN_RW.xp;S.coins+=CHAIN_RW.coins;S.gacha.tickets++;S.bag[loot.id]=(S.bag[loot.id]||0)+1;logToday(loot.id,CHAIN_RW.xp);S.stats.chains=(S.stats.chains||0)+1;save();renderAll();
- await showChainComplete(c,loot);if(levelInfo(S.xp).lv>before)await showLevelUp(before)}
+async function chainCheck(t){if(!t.chain)return;const c=S.chains.find(x=>x.id===t.chain);if(!c||c.done)return;if(!chainSteps(c).every(stepDone))return;const wasBusy=busy;await runAward(c,false);busy=wasBusy}
+/* ---------- award ceremony: drumroll, fanfare, applause, podium animation ---------- */
+function noiseBurst(when,dur,vol,hp){const a=ac();if(!a)return;const n=Math.floor(a.sampleRate*dur),buf=a.createBuffer(1,n,a.sampleRate),d=buf.getChannelData(0);for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*(1-i/n);
+ const src=a.createBufferSource();src.buffer=buf;const f=a.createBiquadFilter();f.type='highpass';f.frequency.value=hp||800;const g=a.createGain();g.gain.value=vol||.05;src.connect(f);f.connect(g);g.connect(a.destination);src.start(a.currentTime+(when||0))}
+function drumroll(sec){for(let t=0;t<sec;t+=.045)noiseBurst(t,.05,.025+t/sec*.05,300);noiseBurst(sec,.35,.12,120);tone(98,.4,sec,'triangle',.12)}
+function fanfare(at){at=at||0;
+ const mel=[[392,.14],[523,.14],[659,.14],[784,.42],[659,.14],[784,.7],[0,.12],[698,.14],[880,.14],[1047,.9]];let t=at;mel.forEach(([f,d])=>{if(f){tone(f,d*.95,t,'square',.06);tone(f*2,d*.6,t,'triangle',.025)}t+=d});
+ [[131,.84],[196,.84],[175,.42],[262,1.4]].reduce((tt,[f,d])=>{tone(f,d,tt,'triangle',.1);return tt+d},at);
+ [[523,659,784],[587,740,880],[523,659,1047]].forEach((ch,i)=>ch.forEach(f=>tone(f,.9,at+1.64+i*.0,'square',.018)))}
+function applause(at,sec){for(let t=0;t<sec;t+=.025)noiseBurst(at+t+Math.random()*.02,.03,.012+Math.random()*.02,1500)}
+const AWARDS=['最強行動力獎','完美任務達人獎','奈奈心目中第一名獎','超級可靠土撥鼠獎','說到做到大賞'];
+const PRAISE_LONG=['三個步驟一口氣全部完成，行動力直接爆表！','從頭到尾都沒有放棄，真的超級厲害！','一步一步做到最後，你是全世界最棒的土撥鼠！','這種執行力，奈奈要頒最大的獎給你！'];
+function drawCeremony(c,t,fx){c.fillStyle='#120c26';c.fillRect(0,0,160,90);
+ const sp=Math.min(1,Math.max(0,(t-1.2)/.5));c.globalAlpha=.18+sp*.22;c.fillStyle='#fff2b0';c.beginPath();c.moveTo(70,0);c.lineTo(90,0);c.lineTo(112,84);c.lineTo(48,84);c.fill();c.globalAlpha=1;
+ c.fillStyle='#8a1c2c';c.fillRect(0,0,22,90);c.fillRect(138,0,22,90);c.fillStyle='#b8303f';for(let x=2;x<22;x+=6){c.fillRect(x,0,2,90);c.fillRect(140+x-2,0,2,90)}c.fillStyle='#ffc94a';c.fillRect(0,0,160,4);
+ c.fillStyle='#46397a';c.fillRect(22,80,116,10);c.fillStyle='#110b24';c.fillRect(22,80,116,1);
+ const pod=(x,w,h,col,n)=>{c.fillStyle='#110b24';c.fillRect(x-1,80-h-1,w+2,h+1);c.fillStyle=col;c.fillRect(x,80-h,w,h);T(c,n,x+w/2,80-h+3,FP,6,'#110b24','center')};pod(40,22,12,'#b3a6d6','2');pod(98,22,9,'#d9a066','3');pod(62,36,20,'#ffc94a','1');
+ if(t<1.2){const s=Math.floor(t*12)%2;T(c,'咚咚咚咚…',80,30,FZ,9,s?'#ffc94a':'#ff6f91','center');return}
+ const up=Math.min(1,(t-1.2)/.4),jy=Math.abs(Math.sin((t-1.6)*5))*(t>1.6?5:0),hy=Math.round(60-up*20-16-jy+20);drawHeroLook(c,'heroHappy',72,hy-4,1,heroLook());drawRows(c,ACC.crownTop.rows,76,hy-9,1);
+ const tx=88,ty=hy-6;c.fillStyle='#110b24';c.fillRect(tx-1,ty-1,10,13);c.fillStyle='#ffc94a';c.fillRect(tx,ty,8,6);c.fillRect(tx+3,ty+6,2,3);c.fillRect(tx+1,ty+9,6,2);c.fillStyle='#fff8e7';c.fillRect(tx+1,ty+1,2,3);
+ if(Math.random()<.5)fx.conf.push({x:24+Math.random()*112,y:-2,v:.4+Math.random()*.6,c:['#ffc94a','#ff6f91','#6fdc8c','#7cc8ff','#c48cff'][Math.floor(Math.random()*5)],w:Math.random()<.5?1:2});
+ fx.conf.forEach(p=>{p.y+=p.v;p.x+=Math.sin(p.y/6)*.3;c.fillStyle=p.c;c.fillRect(Math.round(p.x),Math.round(p.y),p.w,2)});fx.conf=fx.conf.filter(p=>p.y<88);
+ if(Math.random()<.04){fx.flash=4;fx.fx=30+Math.random()*100}if(fx.flash>0){fx.flash--;c.globalAlpha=.5;c.fillStyle='#fff';c.fillRect(fx.fx-3,10,6,6);c.globalAlpha=1}
+ if(Math.floor(t*3)%2)T(c,'WINNER!',80,8,FP,7,'#ffc94a','center')}
+function showCeremony(c,loot,makeup){return overlay(async(d,close)=>{const award=AWARDS[Math.floor(Math.random()*AWARDS.length)];
+ const head=el('div','big-title ult','頒獎典禮');d.append(head);const cv=el('canvas','scene');cv.width=160;cv.height=90;d.append(cv);const ctx=cv.getContext('2d');
+ const say=el('div','scene-text','掌聲歡迎今天的得獎者……');d.append(say);let done=false;const fx={conf:[],flash:0},t0=performance.now();(function loop(now){if(done)return;drawCeremony(ctx,(now-t0)/1000,fx);requestAnimationFrame(loop)})(t0);
+ drumroll(1.15);fanfare(1.25);applause(1.3,3.2);buzz([30,30,30,30,30,30,30,30,200,60,200]);
+ await wait(reduce?100:1250);head.textContent=PRAISE[Math.floor(Math.random()*PRAISE.length)];burst(160,'coin');setTimeout(()=>burst(140),600);setTimeout(()=>burst(160),1300);
+ say.textContent=PRAISE_LONG[Math.floor(Math.random()*PRAISE_LONG.length)];
+ const cert=el('div','cert');cert.append(el('div','cert-h','獎　狀'),el('div',null,'茲頒發'),el('b',null,'「'+award+'」'),el('div',null,'給 土撥鼠'),el('small',null,'表揚完成連鎖任務「'+c.name+'」'+(makeup?'（補發）':'')),el('small',null,todayStr().replace(/-/g,'/')+'　頒獎人：奈奈'));d.append(cert);
+ const ul=el('div','chain-list');(c.titles||chainSteps(c).map(t=>t&&t.title)).forEach((tt,i)=>{if(tt)ul.append(el('div',null,'✓ '+(i+1)+'. '+tt))});d.append(ul);
+ const gain=el('div','gain');const xa=el('div','xpv');xa.textContent='+'+CHAIN_RW.xp+' XP';const ca=el('div','cv');ca.append(spriteEl('coin'),'+'+CHAIN_RW.coins);gain.append(xa,ca);d.append(gain,el('div','cheer','另外送你一張扭蛋券'));
+ const lc=lootCard(loot);d.append(lc);const b=el('button','btn big pink','我真的很棒 ▶');b.type='button';b.disabled=true;b.style.opacity=.5;b.onclick=()=>{done=true;close()};d.append(b);
+ await wait(reduce?100:1600);lc.classList.add('show');sfx.legend();await wait(reduce?50:900);b.disabled=false;b.style.opacity=1;b.focus()})}
+function awardChain(c){const pool=LOOT.filter(l=>l.r==='legend'),loot=pool[Math.floor(Math.random()*pool.length)];c.done=Date.now();
+ S.xp+=CHAIN_RW.xp;S.coins+=CHAIN_RW.coins;S.gacha.tickets++;S.bag[loot.id]=(S.bag[loot.id]||0)+1;logToday(loot.id,CHAIN_RW.xp);S.stats.chains=(S.stats.chains||0)+1;save();return loot}
+async function runAward(c,makeup){const before=levelInfo(S.xp).lv;const loot=awardChain(c);renderAll();busy=true;await showCeremony(c,loot,makeup);if(levelInfo(S.xp).lv>before)await showLevelUp(before);busy=false;renderAll();unlockCheck()}
+// make-up awards: any chain whose steps are all done but never got its ceremony, plus today's cake chain
+function chainMakeup(){const q=[];S.fixes=S.fixes||[];
+ if(!S.fixes.includes('2026-10-29-cake-praise')){S.fixes.push('2026-10-29-cake-praise');let c=S.chains.find(x=>x.name==='起酥蛋糕換晚餐大作戰');
+  if(c&&!c.done){chainSteps(c).forEach(t=>{if(t&&!t.done){t.done=true;t.doneAt=Date.now()}});q.push(c)}
+  else if(!c){c={id:uid(),name:'起酥蛋糕換晚餐大作戰',steps:[],titles:['買起酥蛋糕','把起酥蛋糕拿給奈媽','跟奈媽交換到晚餐'],done:false,at:Date.now()};S.chains.push(c);q.push(c)}
+  save()}
+ S.chains.forEach(c=>{if(!c.done&&!q.includes(c)&&c.steps.length&&chainSteps(c).every(stepDone)&&chainSteps(c).some(t=>t))q.push(c)});
+ if(q.length){let n=0;const go=()=>{if(busy||document.querySelector('.overlay')){if(++n<120)setTimeout(go,1000);return}const c=q.shift();runAward(c,true).then(()=>{if(q.length)setTimeout(go,800)})};setTimeout(go,2600)}}
+
 BADGES.push(['chain1','連鎖達人','完成第一個連鎖任務',()=>(S.stats.chains||0)>0]);
+chainMakeup();
 
 setInterval(renderHUD,30e3);
 renderAll();
