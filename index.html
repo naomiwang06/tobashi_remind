@@ -964,7 +964,29 @@ onAuthStateChanged(auth, async (user) => {
   document.getElementById('s-login').classList.add('active');
 
   const TODAY_KEY = new Date().toISOString().slice(0,10);
-  const snap = await get(ref(db, DATA_REF));
+  let snap;
+  try {
+    snap = await get(ref(db, DATA_REF));
+  } catch(e) {
+    // 資料庫規則只允許白名單帳號；其他 Google 帳號會在這裡被擋下
+    const denied = /permission|PERMISSION/i.test(String(e && (e.code || e.message)));
+    const box = document.getElementById('s-login');
+    box.innerHTML = '';
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;gap:14px;padding:40px;text-align:center';
+    const msg = document.createElement('div');
+    msg.style.cssText = 'font-size:13px;color:var(--t1);line-height:1.7';
+    msg.textContent = denied
+      ? '這個 Google 帳號沒有存取權限（' + (user.email || '') + '）。請改用被授權的帳號登入，或請管理者把你的 Email 加進白名單。'
+      : '資料載入失敗，請檢查網路後重新整理。';
+    const btn = document.createElement('button');
+    btn.textContent = '登出 / 換帳號';
+    btn.style.cssText = 'padding:10px 18px;border-radius:99px;border:1.5px solid var(--accent);background:transparent;color:var(--accent);font-weight:600;cursor:pointer';
+    btn.onclick = () => window.doLogout();
+    wrap.append(msg, btn);
+    box.append(wrap);
+    return;
+  }
   let loaded = snap.exists() ? snap.val() : null;
 
   if(!loaded || loaded.todayKey !== TODAY_KEY) {
@@ -1040,6 +1062,8 @@ onAuthStateChanged(auth, async (user) => {
 </script>
 
 <script>
+// 輸出跳脫：雲端資料（標題、名稱…）放進 innerHTML 前一律先跳脫，避免 HTML/JS 注入
+const esc = window.esc = v => v==null ? '' : String(v).replace(/[&<>"'`]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','`':'&#96;'}[c]));
 // ── Small task pool ───────────────────────────────────────────────
 const SMALL_POOL = [
   {id:'s1', title:'擦一塊地板', icon:'🧹', msg:'地板好乾淨！小事做完也算大成就 ✨'},
@@ -1068,8 +1092,17 @@ window.DEFAULT_STATE = {
 };
 
 // ── sanitize STATE — fill missing fields with defaults ─────────────
+function sanitizeIds(o, depth) {
+  if(!o || typeof o !== 'object' || depth > 6) return;
+  if(Array.isArray(o)) { o.forEach(x => sanitizeIds(x, depth+1)); return; }
+  Object.keys(o).forEach(k => {
+    if(k === 'id' && typeof o[k] === 'string') o[k] = o[k].replace(/[^A-Za-z0-9_-]/g, '').slice(0, 40);
+    else if(o[k] && typeof o[k] === 'object') sanitizeIds(o[k], depth+1);
+  });
+}
 function sanitizeState(s) {
   if(!s) return;
+  sanitizeIds(s, 0);
   if(!s.healthReminders) s.healthReminders = [];
   if(!s.todaySmall) s.todaySmall = [];
   if(!s.smallDone) s.smallDone = {};
@@ -1254,12 +1287,12 @@ function renderBacklog(){
   el.innerHTML = bl.map((b,i)=>`
     <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:${i===bl.length-1?'none':'1px solid var(--bd)'}">
       ⠿
-      <div style="width:36px;height:36px;border-radius:10px;background:var(--asoft);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">${b.icon}</div>
+      <div style="width:36px;height:36px;border-radius:10px;background:var(--asoft);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">${esc(b.icon)}</div>
       <div style="flex:1;min-width:0">
-        <div style="font-size:13px;font-weight:600;color:var(--t0);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${b.title}</div>
+        <div style="font-size:13px;font-weight:600;color:var(--t0);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(b.title)}</div>
         <div class="meta" style="margin-top:3px">
-          ${b.ddl?`<span class="tag tag-d">${b.ddl}</span>`:'<span style="font-size:10px;color:var(--t2)">無截止</span>'}
-          <span style="font-size:11px;color:var(--t2)">${b.dur}</span>
+          ${b.ddl?`<span class="tag tag-d">${esc(b.ddl)}</span>`:'<span style="font-size:10px;color:var(--t2)">無截止</span>'}
+          <span style="font-size:11px;color:var(--t2)">${esc(b.dur)}</span>
         </div>
       </div>
       <div style="display:flex;gap:4px;flex-shrink:0;align-items:center">
@@ -1321,10 +1354,10 @@ function renderTodoEvents(){
     return `<div class="tr${t.done?' done-row':''}" data-td-id="${t.id}" style="${i===sorted.length-1?'border-bottom:none':''}">
       <div class="cbar" style="background:${p.color}"></div>
       <div style="flex:1;min-width:0">
-        <div class="ttl${t.done?' done-txt':''}">${t.title}</div>
+        <div class="ttl${t.done?' done-txt':''}">${esc(t.title)}</div>
         <div class="meta">
           <span class="tag" style="background:${p.soft};color:${p.color}">${p.label}優先</span>
-          ${t.ddl?`<span class="tag tag-d">📅 ${t.ddl}</span>`:'<span style="font-size:10px;color:var(--t2)">無截止</span>'}
+          ${t.ddl?`<span class="tag tag-d">📅 ${esc(t.ddl)}</span>`:'<span style="font-size:10px;color:var(--t2)">無截止</span>'}
         </div>
       </div>
       <div style="display:flex;gap:5px;align-items:center;flex-shrink:0">
@@ -1760,7 +1793,7 @@ function renderVault(){
     return `<div style="display:flex;align-items:center;gap:11px;padding:8px 0;border-bottom:${i===MILESTONES.length-1?'none':'1px solid var(--bd)'};opacity:${reached?1:.4}">
       <span style="font-size:22px;flex-shrink:0">${reached?'🪙':'🔒'}</span>
       <div style="flex:1">
-        <div style="font-size:13px;font-weight:${reached?700:400};color:var(--t0)">$${m.amount.toLocaleString()} · ${m.title}</div>
+        <div style="font-size:13px;font-weight:${reached?700:400};color:var(--t0)">$${m.amount.toLocaleString()} · ${esc(m.title)}</div>
         <div style="font-size:11px;color:var(--t2);margin-top:1px">${m.msg}</div>
       </div>
       ${reached?'<span style="font-size:16px">✅</span>':''}
@@ -1777,8 +1810,8 @@ function renderVault(){
       <div class="tr" data-inc-id="${item.id}">
         <span style="font-size:18px;flex-shrink:0">🪙</span>
         <div style="flex:1;padding-left:6px">
-          <div style="font-size:13px;font-weight:600;color:var(--t0)">${item.name||'接案收入'}</div>
-          <div style="font-size:11px;color:var(--t2)">${item.date||''}</div>
+          <div style="font-size:13px;font-weight:600;color:var(--t0)">${esc(item.name||'接案收入')}</div>
+          <div style="font-size:11px;color:var(--t2)">${esc(item.date||'')}</div>
         </div>
         <span style="font-family:monospace;font-size:14px;font-weight:700;color:#c8860a">+$${(item.amount||0).toLocaleString()}</span>
         <button class="act-btn" data-action="del-inc" style="margin-left:6px">🗑</button>
@@ -2001,8 +2034,8 @@ function renderReminders(){
     <div class="tr${r.done?' done-row':''}" data-hr-id="${r.id}">
       <div class="cbar" style="background:${typeColor('health')}"></div>
       <div style="flex:1">
-        <div class="ttl${r.done?' done-txt':''}">${r.title}</div>
-        <div class="meta">${r.time?`<span style="font-size:11px;color:var(--t2)">${r.time}</span>`:''}
+        <div class="ttl${r.done?' done-txt':''}">${esc(r.title)}</div>
+        <div class="meta">${r.time?`<span style="font-size:11px;color:var(--t2)">${esc(r.time)}</span>`:''}
           ${typeTag('health','每日必做！')}
         </div>
       </div>
@@ -2031,9 +2064,9 @@ function renderReminders(){
   if(sm.length){
     smEl.innerHTML = sm.map((s)=>`
       <div class="tr${s.done?' done-row':''}" data-sm-id="${s.id}" data-sm-title="${s.title.replace(/"/g,'&quot;')}" data-sm-msg="${(s.msg||'').replace(/"/g,'&quot;')}">
-        <div style="font-size:22px;flex-shrink:0;width:30px;text-align:center">${s.icon||'✨'}</div>
+        <div style="font-size:22px;flex-shrink:0;width:30px;text-align:center">${esc(s.icon||'✨')}</div>
         <div style="flex:1">
-          <div class="ttl${s.done?' done-txt':''}">${s.title}</div>
+          <div class="ttl${s.done?' done-txt':''}">${esc(s.title)}</div>
           <div class="meta">${typeTag('small','今日隨機')}</div>
         </div>
         <div class="chkbtn${s.done?' done':''}" data-action="chk-sm">
@@ -2061,8 +2094,8 @@ function renderReminders(){
       <div class="tr${t.done?' done-row':''}" data-todo-id="${t.id}">
         <div class="cbar" style="background:${typeColor('todo')}"></div>
         <div style="flex:1">
-          <div class="ttl${t.done?' done-txt':''}">${t.title}</div>
-          <div class="meta">${t.time?`<span style="font-size:11px;color:var(--t2)">${t.time}</span>`:''}${typeTag('todo')}</div>
+          <div class="ttl${t.done?' done-txt':''}">${esc(t.title)}</div>
+          <div class="meta">${t.time?`<span style="font-size:11px;color:var(--t2)">${esc(t.time)}</span>`:''}${typeTag('todo')}</div>
         </div>
         <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
           <button class="act-btn" data-action="edit-todo">✏️</button>
@@ -2103,11 +2136,11 @@ function renderReminders(){
     calEl.innerHTML=calEvs.map(ev=>{
       const ck = window.STATE.calData[todayCK]&&window.STATE.calData[todayCK].find(e=>e.id===ev.id) ? todayCK : (window.STATE.calData[22]?'22num':'22str');
       const realKey = ck==='22num'?22:ck==='22str'?'22':todayCK;
-      const meta=[ev.time?`<span style="font-size:11px;color:var(--t2)">${ev.time}</span>`:'', ev.dur?`<span style="font-size:11px;color:var(--t2)">${ev.dur}</span>`:'', typeTag(ev.type), ev.ddl?typeTag('deadline','截止 '+ev.ddl):''].filter(Boolean).join('');
+      const meta=[ev.time?`<span style="font-size:11px;color:var(--t2)">${esc(ev.time)}</span>`:'', ev.dur?`<span style="font-size:11px;color:var(--t2)">${esc(ev.dur)}</span>`:'', typeTag(ev.type), ev.ddl?typeTag('deadline','截止 '+ev.ddl):''].filter(Boolean).join('');
       return `<div class="tr${ev.done?' done-row':''}" data-cal-key="${realKey}" data-cal-id="${ev.id}">
         <div class="cbar" style="background:${typeColor(ev.type)}"></div>
         <div style="flex:1">
-          <div class="ttl${ev.done?' done-txt':''}">${ev.title}</div>
+          <div class="ttl${ev.done?' done-txt':''}">${esc(ev.title)}</div>
           <div class="meta">${meta}</div>
         </div>
         <div style="display:flex;gap:5px;align-items:center;flex-shrink:0">
@@ -2274,16 +2307,16 @@ function renderDay(){
       const p=PRIO[t.prio]||PRIO.mid;
       h+=`<div class="tr${t.done?' done-row':''}" data-tde-id="${t.id}">
         <div class="cbar" style="background:${p.color}"></div>
-        <div style="flex:1"><div class="ttl${t.done?' done-txt':''}">${t.title}</div><div class="meta"><span class="tag" style="background:${p.soft};color:${p.color}">${p.label}優先</span><span class="tag tag-t">待辦事件</span></div></div>
+        <div style="flex:1"><div class="ttl${t.done?' done-txt':''}">${esc(t.title)}</div><div class="meta"><span class="tag" style="background:${p.soft};color:${p.color}">${p.label}優先</span><span class="tag tag-t">待辦事件</span></div></div>
         <div class="chkbtn${t.done?' done':''}" data-action="chk-tde"><span style="font-size:13px">✓</span></div>
       </div>`;
     });
     // calendar events
     evs.forEach((ev,i)=>{
-      const meta=[ev.dur?`<span style="font-size:11px;color:var(--t2)">${ev.dur}</span>`:'',ev.time?`<span style="font-size:11px;color:var(--t2)">${ev.time}</span>`:'',typeTag(ev.type),ev.ddl?typeTag('deadline','截止 '+ev.ddl):''].filter(Boolean).join('');
+      const meta=[ev.dur?`<span style="font-size:11px;color:var(--t2)">${esc(ev.dur)}</span>`:'',ev.time?`<span style="font-size:11px;color:var(--t2)">${esc(ev.time)}</span>`:'',typeTag(ev.type),ev.ddl?typeTag('deadline','截止 '+ev.ddl):''].filter(Boolean).join('');
       h+=`<div class="tr${ev.done?' done-row':''}" data-cal-key="${key}" data-cal-id="${ev.id}">
         <div class="cbar" style="background:${typeColor(ev.type)}"></div>
-        <div style="flex:1"><div class="ttl${ev.done?' done-txt':''}">${ev.title}</div><div class="meta">${meta}</div></div>
+        <div style="flex:1"><div class="ttl${ev.done?' done-txt':''}">${esc(ev.title)}</div><div class="meta">${meta}</div></div>
         <div style="display:flex;gap:5px;align-items:center;flex-shrink:0">
           <button class="act-btn" data-action="edit-cal">✏️</button>
           <button class="act-btn" data-action="del-cal">🗑</button>
@@ -2329,8 +2362,8 @@ function renderCalSummary(){
       const p=PRIO[t.prio]||PRIO.mid;
       return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0">
         <span style="width:7px;height:7px;border-radius:50%;background:${p.color};flex-shrink:0"></span>
-        <span style="flex:1;font-size:12px;color:var(--t0)">${t.title}</span>
-        ${t.ddl?`<span style="font-size:11px;color:var(--t2)">📅 ${t.ddl}</span>`:''}
+        <span style="flex:1;font-size:12px;color:var(--t0)">${esc(t.title)}</span>
+        ${t.ddl?`<span style="font-size:11px;color:var(--t2)">📅 ${esc(t.ddl)}</span>`:''}
       </div>`;
     }).join('');
   dd.appendChild(sumEl);
@@ -2435,15 +2468,15 @@ function renderGoals(){
         <div class="chkbtn${s.done?' done':''}" style="width:22px;height:22px;margin-top:0" data-action="chk-sub">
           <span style="font-size:12px">✓</span>
         </div>
-        <div style="flex:1;font-size:13px;color:var(--t0);${s.done?'text-decoration:line-through;opacity:.5':''}">${s.title}</div>
+        <div style="flex:1;font-size:13px;color:var(--t0);${s.done?'text-decoration:line-through;opacity:.5':''}">${esc(s.title)}</div>
         <button class="act-btn" data-action="edit-sub">✏️</button>
         <button class="act-btn" data-action="del-sub">🗑</button>
       </div>`).join('');
     return `<div class="goal-card" style="border-left:3px solid ${g.color}" data-gid="${g.id}">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
         <div style="flex:1">
-          <div style="font-size:14px;font-weight:700;color:var(--t0)">${g.title}</div>
-          <div style="font-size:11px;color:var(--t2);margin-top:3px">截止 ${g.ddl} · ${done}/${total} 完成</div>
+          <div style="font-size:14px;font-weight:700;color:var(--t0)">${esc(g.title)}</div>
+          <div style="font-size:11px;color:var(--t2);margin-top:3px">截止 ${esc(g.ddl)} · ${done}/${total} 完成</div>
         </div>
         <div style="display:flex;gap:4px;flex-shrink:0">
           <button data-action="add-sub" style="font-size:11px;color:${g.color};background:transparent;border:1px solid ${g.color};border-radius:99px;padding:3px 9px;cursor:pointer;white-space:nowrap">＋ 子任務</button>
@@ -2605,9 +2638,9 @@ function renderAchievementGroup(items, stats, earnedSet){
   return items.map((ac,i)=>{
     const earned = ac.check(stats) || earnedSet.has(ac.id);
     return `<div style="display:flex;align-items:center;gap:11px;padding:9px 0;border-bottom:${i===items.length-1?'none':'1px solid var(--bd)'};opacity:${earned?1:0.35}">
-      <span style="font-size:26px;flex-shrink:0">${ac.icon}</span>
+      <span style="font-size:26px;flex-shrink:0">${esc(ac.icon)}</span>
       <div style="flex:1">
-        <div style="font-size:13px;font-weight:${earned?700:400};color:var(--t0)">${ac.title}</div>
+        <div style="font-size:13px;font-weight:${earned?700:400};color:var(--t0)">${esc(ac.title)}</div>
         <div style="font-size:11px;color:var(--t2);margin-top:2px">${ac.desc}</div>
       </div>
       ${earned?'<span style="font-size:18px">✅</span>':'<span style="font-size:12px;color:var(--t2)">未達成</span>'}
@@ -2636,7 +2669,7 @@ function renderAchieve(){
   doneEl.innerHTML=allDone.length
     ?allDone.map((item,i)=>`<div class="tr" style="${i===allDone.length-1?'border-bottom:none':''}">
         <span style="color:var(--accent);font-size:16px;flex-shrink:0">✓</span>
-        <div style="flex:1;font-size:13px;color:var(--t0);padding-left:6px">${item.title}</div>
+        <div style="flex:1;font-size:13px;color:var(--t0);padding-left:6px">${esc(item.title)}</div>
         ${typeTag(item.type)}
       </div>`).join('')
     :'<div style="text-align:center;padding:14px 0;font-size:13px;color:var(--t2)"><div style="font-size:28px;margin-bottom:6px">🌱</div>今天還沒有完成的事…去提醒頁打勾吧！</div>';
@@ -2685,8 +2718,8 @@ function renderAchieve(){
     ?entries.map(([id,count])=>{
         const task=SMALL_POOL.find(s=>s.id===id)||{title:id,icon:'✨'};
         return `<div style="display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid var(--bd)">
-          <span style="font-size:20px">${task.icon}</span>
-          <div style="flex:1;font-size:13px;color:var(--t0)">${task.title}</div>
+          <span style="font-size:20px">${esc(task.icon)}</span>
+          <div style="flex:1;font-size:13px;color:var(--t0)">${esc(task.title)}</div>
           <span style="font-size:12px;font-weight:700;color:var(--amber);background:var(--amsoft);padding:2px 9px;border-radius:99px">×${count}</span>
         </div>`;
       }).join('')
@@ -2732,7 +2765,7 @@ function initCareAdd(){
   // populate goal select
   const sel=document.getElementById('care-goal-select');
   sel.innerHTML = window.STATE.goals.length
-    ? window.STATE.goals.map(g=>`<option value="${g.id}">${g.title}</option>`).join('')
+    ? window.STATE.goals.map(g=>`<option value="${g.id}">${esc(g.title)}</option>`).join('')
     : '<option value="">（還沒有長期目標）</option>';
   // set cal month to current
   document.getElementById('care-cal-year').value = new Date().getFullYear();
@@ -2822,7 +2855,7 @@ function renderCare(){
   taskEl.innerHTML=items.length?items.map((ev,i)=>`
     <div class="tr" style="${i===items.length-1?'border-bottom:none':''}${ev.done?';opacity:.45':''}">
       <div class="cbar" style="background:${typeColor(ev.type)}"></div>
-      <div style="flex:1"><div style="font-size:13px;font-weight:500;color:var(--t0)">${ev.title}</div></div>
+      <div style="flex:1"><div style="font-size:13px;font-weight:500;color:var(--t0)">${esc(ev.title)}</div></div>
       ${typeTag(ev.type)}
       <span style="font-size:18px;margin-left:6px;flex-shrink:0">${ev.done?'✅':'⭕'}</span>
     </div>`).join(''):'<div style="text-align:center;padding:14px 0;font-size:13px;color:var(--t2)">今天還沒有提醒</div>';
@@ -2834,8 +2867,8 @@ function renderCare(){
     const total=g.subtasks.length, done=g.subtasks.filter(s=>s.done).length;
     const pct=total?Math.round(done/total*100):0;
     return `<div class="card" style="border-left:3px solid ${g.color};padding:12px 14px">
-      <div style="font-size:13px;font-weight:600;color:var(--t0)">${g.title}</div>
-      <div style="font-size:11px;color:var(--t2);margin-top:2px">截止 ${g.ddl} · ${done}/${total} 完成</div>
+      <div style="font-size:13px;font-weight:600;color:var(--t0)">${esc(g.title)}</div>
+      <div style="font-size:11px;color:var(--t2);margin-top:2px">截止 ${esc(g.ddl)} · ${done}/${total} 完成</div>
       <div class="goal-bar" style="margin:8px 0 3px"><div class="goal-fill" style="width:${pct}%;background:${g.color}"></div></div>
       <div style="font-size:11px;color:var(--t2)">${pct}%</div>
     </div>`;

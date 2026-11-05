@@ -1,0 +1,34 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "care_tobashi": {
+      "shared": {
+        ".read": "auth != null && auth.token.email_verified === true && (auth.token.email === 'naomiwang0619@gmail.com' || auth.token.email === 'REPLACE_ME_caregiver@example.invalid' || auth.token.email === 'REPLACE_ME_patient@example.invalid')",
+        ".write": "auth != null && auth.token.email_verified === true && (auth.token.email === 'naomiwang0619@gmail.com' || auth.token.email === 'REPLACE_ME_caregiver@example.invalid' || auth.token.email === 'REPLACE_ME_patient@example.invalid')",
+        ".validate": "newData.hasChildren()"
+      }
+    },
+    "dig_quest": {
+      "saves": {
+        "$uid": {
+          ".read": "auth != null && auth.token.email_verified === true && (auth.token.email === 'naomiwang0619@gmail.com' || auth.token.email === 'REPLACE_ME_caregiver@example.invalid' || auth.token.email === 'REPLACE_ME_patient@example.invalid') && auth.uid === $uid",
+          ".write": "auth != null && auth.token.email_verified === true && (auth.token.email === 'naomiwang0619@gmail.com' || auth.token.email === 'REPLACE_ME_caregiver@example.invalid' || auth.token.email === 'REPLACE_ME_patient@example.invalid') && auth.uid === $uid",
+          ".validate": "newData.hasChildren(['json','savedAt'])",
+          "json": {
+            ".validate": "newData.isString() && newData.val().length < 2000000"
+          },
+          "savedAt": {
+            ".validate": "newData.isNumber()"
+          },
+          "v": {
+            ".validate": "newData.isNumber()"
+          },
+          "$other": {
+            ".validate": false
+          }
+        }
+      }
+    }
+  }
+}
