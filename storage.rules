@@ -1,0 +1,9 @@
+rules_version = '2';
+// 這個專案的 App 沒有使用 Cloud Storage → 一律拒絕，避免 bucket 被當成公開空間。
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
