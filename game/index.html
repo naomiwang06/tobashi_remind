@@ -553,7 +553,7 @@ textarea.rep{min-height:52px;font-size:15px}
 
   <div class="foot">
     <button class="btn ghost sm" id="soundBtn" type="button">音效：開</button>
-    <span class="ver">版本 2026-11-09b</span>
+    <span class="ver">版本 2026-11-09c</span>
     <button class="btn ghost sm" id="resetBtn" type="button">清空今天已完成的關卡</button>
   </div>
 </div>
@@ -674,11 +674,12 @@ const PACKS=[{id:'2026-10-22-yongle-v3',drop:OLD_V1,tasks:[
  {title:'看牙齒',type:'task',size:'l',dentist:true,note:'看完牙有特別動畫'}
 ]}];
 S.packs=S.packs||[];
+function packOld(id){return /^\d{4}-\d{2}-\d{2}/.test(id)&&id.slice(0,10)<todayStr()}
 const DAILY_DEFAULT=[['清桌上的垃圾','s'],['撿地上的垃圾','s'],['掃地','m'],['洗衣服','m'],['整理冰箱','m'],['丟掉過期食物','s'],['收拾陽台的 5 隻襪子','s'],['餵貓','s',3],['完成一支短影片','l'],['完成一支長影片','l']];
 const DAILY_PACKS=[{id:'2026-10-29-once',items:[{title:'整理廁所、清貓大便',size:'x'},{title:'殺螞蟻',size:'s'}]}];
 const FIXES=[{id:'2026-11-09-somet-demon',run:()=>{S.bosses.forEach(b=>{if(/^Somet短影片/.test(b.name))b.spr='demon'})}},{id:'2026-10-29-sizes',run:()=>{S.tasks.forEach(t=>{if(t.title==='買起酥蛋糕'&&!t.done)t.size='l'});S.daily.forEach(d=>{if(d.title==='整理廁所、清貓大便')d.size='x'})}}];
 function applyFixes(){S.fixes=S.fixes||[];FIXES.forEach(f=>{if(S.fixes.includes(f.id))return;try{f.run()}catch(e){}S.fixes.push(f.id)})}
-function applyDailyPacks(){S.dailyPacks=S.dailyPacks||[];DAILY_PACKS.forEach(pk=>{if(S.dailyPacks.includes(pk.id))return;pk.items.forEach(it=>S.daily.push({id:uid(),title:it.title,size:it.size,times:1,once:true}));S.dailyPacks.push(pk.id)})}
+function applyDailyPacks(){S.dailyPacks=S.dailyPacks||[];DAILY_PACKS.forEach(pk=>{if(S.dailyPacks.includes(pk.id))return;if(packOld(pk.id)){S.dailyPacks.push(pk.id);return}pk.items.forEach(it=>S.daily.push({id:uid(),title:it.title,size:it.size,times:1,once:true}));S.dailyPacks.push(pk.id)})}
 if(!S.daily)S.daily=DAILY_DEFAULT.map(d=>({id:uid(),title:d[0],size:d[1],times:d[2]||1}));applyDailyPacks();applyFixes();
 if(!S.dlog||S.dlog.day!==todayStr())S.dlog={day:todayStr(),c:{}};
 S.coupons=S.coupons||[];S.stats=S.stats||{};S.stats.clears=S.stats.clears||0;S.stats.starts=S.stats.starts||0;S.stats.allClears=S.stats.allClears||0;S.stats.feedDays=S.stats.feedDays||[];S.badges=S.badges||{};S.sets=S.sets||{};S.catDex=S.catDex||{};S.jar=S.jar||{amt:0,done:0};
@@ -686,10 +687,10 @@ if(!S.bosses)S.bosses=[{id:uid(),name:'短影片史萊姆',spr:'slime',steps:['�
 save();
 // boss packs: each lands once at the front of his boss list, never touching existing bosses
 const BOSS_PACKS=[{id:'2026-10-22-ribbon',boss:{name:'緞帶小魔王',spr:'ribbon',mini:true,steps:['挑第 1 個顏色','挑第 2 個顏色','挑第 3 個顏色','挑第 4 個顏色','挑白色']}},{id:'2026-11-09-somet2',boss:{name:'Somet短影片 2',spr:'demon',steps:['找素材','剪輯','上字幕','做封面','上傳']}},{id:'2026-11-09-somet1',boss:{name:'Somet短影片 1',spr:'demon',steps:['找素材','剪輯','上字幕','做封面','上傳']}}];
-S.bossPacks=S.bossPacks||[];BOSS_PACKS.forEach(pk=>{if(S.bossPacks.includes(pk.id))return;const b=pk.boss;S.bosses.unshift({id:uid(),name:b.name,spr:b.spr,mini:!!b.mini,steps:b.steps.map(t=>({t,done:false})),dead:false,kills:0});S.bossPacks.push(pk.id);save();setTimeout(()=>toast('野生的'+b.name+'出現了！到 Boss 區開打'),3200)});
+S.bossPacks=S.bossPacks||[];BOSS_PACKS.forEach(pk=>{if(S.bossPacks.includes(pk.id))return;if(packOld(pk.id)){S.bossPacks.push(pk.id);return}const b=pk.boss;S.bosses.unshift({id:uid(),name:b.name,spr:b.spr,mini:!!b.mini,steps:b.steps.map(t=>({t,done:false})),dead:false,kills:0});S.bossPacks.push(pk.id);save();setTimeout(()=>toast('野生的'+b.name+'出現了！到 Boss 區開打'),3200)});
 function dcount(id){return S.dlog.c[id]||0}
 function logToday(id,xp){S.dlog.loot=S.dlog.loot||{};S.dlog.loot[id]=(S.dlog.loot[id]||0)+1;S.dlog.xp=(S.dlog.xp||0)+(xp||0)}
-PACKS.forEach(pk=>{if(S.packs.includes(pk.id))return;const dropT=(pk.drop||[]).concat(pk.tasks.map(x=>x.title));S.tasks=S.tasks.filter(t=>!t.sample&&!(t.done===false&&dropT.includes(t.title)));pk.tasks.forEach(t=>S.tasks.push(Object.assign({id:uid(),done:false},t)));S.packs.push(pk.id);save()});
+PACKS.forEach(pk=>{if(S.packs.includes(pk.id))return;if(packOld(pk.id)){S.packs.push(pk.id);return}const dropT=(pk.drop||[]).concat(pk.tasks.map(x=>x.title));S.tasks=S.tasks.filter(t=>!t.sample&&!(t.done===false&&dropT.includes(t.title)));pk.tasks.forEach(t=>S.tasks.push(Object.assign({id:uid(),done:false},t)));S.packs.push(pk.id);save()});
 
 /* ---------- sound ---------- */
 let AC=null;
@@ -1506,14 +1507,14 @@ function renderCloud(){const n=$('#cloudInfo');if(!n)return;const st=CLOUD.statu
  const al=$('#acctLabel');if(al){al.textContent=u?'玩家帳號：'+(u.displayName||u.email||'已登入'):(st==='loading'?'帳號：載入中…':'未登入：進度只存在這支手機');al.classList.toggle('on',!!u)}
  const li=$('#cloudLogin'),lo=$('#cloudLogout'),nag=$('#cloudNag');if(li)li.hidden=!!u||st==='loading'||st==='nofb';if(lo)lo.hidden=!u;if(nag)nag.hidden=st!=='out'}
 function applyPacks(){S.packs=S.packs||[];S.bossPacks=S.bossPacks||[];
- PACKS.forEach(pk=>{if(S.packs.includes(pk.id))return;const dropT=(pk.drop||[]).concat(pk.tasks.map(x=>x.title));S.tasks=S.tasks.filter(t=>!t.sample&&!(t.done===false&&dropT.includes(t.title)));pk.tasks.forEach(t=>S.tasks.push(Object.assign({id:uid(),done:false},t)));S.packs.push(pk.id)});
+ PACKS.forEach(pk=>{if(S.packs.includes(pk.id))return;if(packOld(pk.id)){S.packs.push(pk.id);return}const dropT=(pk.drop||[]).concat(pk.tasks.map(x=>x.title));S.tasks=S.tasks.filter(t=>!t.sample&&!(t.done===false&&dropT.includes(t.title)));pk.tasks.forEach(t=>S.tasks.push(Object.assign({id:uid(),done:false},t)));S.packs.push(pk.id)});
  applyDailyPacks();applyFixes();
- BOSS_PACKS.forEach(pk=>{if(S.bossPacks.includes(pk.id))return;const b=pk.boss;S.bosses.unshift({id:uid(),name:b.name,spr:b.spr,mini:!!b.mini,steps:b.steps.map(t=>({t,done:false})),dead:false,kills:0});S.bossPacks.push(pk.id)})}
+ BOSS_PACKS.forEach(pk=>{if(S.bossPacks.includes(pk.id))return;if(packOld(pk.id)){S.bossPacks.push(pk.id);return}const b=pk.boss;S.bosses.unshift({id:uid(),name:b.name,spr:b.spr,mini:!!b.mini,steps:b.steps.map(t=>({t,done:false})),dead:false,kills:0});S.bossPacks.push(pk.id)})}
 function adoptState(o){Object.keys(S).forEach(k=>delete S[k]);Object.assign(S,o);
  if(S.day!==todayStr()){S.tasks=(S.tasks||[]).filter(t=>!t.done).map(t=>Object.assign(t,{carry:true}));S.day=todayStr();S.combo=0}
  S.tasks=S.tasks||[];S.daily=S.daily||[];S.bag=S.bag||{};S.bosses=S.bosses||[];if(!S.dlog||S.dlog.day!==todayStr())S.dlog={day:todayStr(),c:{}};
  S.coupons=S.coupons||[];S.jar=S.jar||{amt:0,done:0};S.stats=Object.assign({clears:0,starts:0,allClears:0,feedDays:[],mealDays:[]},S.stats||{});S.badges=S.badges||{};S.sets=S.sets||{};S.catDex=S.catDex||{};
- S.gacha=Object.assign({tickets:0,lvT:0,owned:{},skin:'',acc:''},S.gacha||{});S.future=S.future||[];applyPacks();if(typeof applyAlertPacks==='function')applyAlertPacks();if(typeof applyChainPacks==='function')applyChainPacks();promoteFuture();
+ S.gacha=Object.assign({tickets:0,lvT:0,owned:{},skin:'',acc:''},S.gacha||{});S.future=S.future||[];applyPacks();if(typeof cleanupOldPacks==='function'){S.fixes=(S.fixes||[]).filter(x=>x!=='2026-11-09-old-packs');cleanupOldPacks()}if(typeof applyAlertPacks==='function')applyAlertPacks();if(typeof applyChainPacks==='function')applyChainPacks();promoteFuture();
  try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}idbSet(JSON.stringify(S));paintHero(false);renderAll()}
 async function cloudRead(u){const snap=await FB.get(FB.ref(FB.db,CLOUD_PATH+u.uid));if(!snap.exists())return null;try{const o=JSON.parse(snap.val().json);return o&&typeof o.xp==='number'?o:null}catch(e){return null}}
 async function cloudLogin(u){CLOUD.status='checking';renderCloud();let cs=null;try{cs=await cloudRead(u)}catch(e){CLOUD.status=permErr(e)?'denied':'error';renderCloud();return}
@@ -1530,7 +1531,7 @@ document.addEventListener('visibilitychange',async()=>{if(document.hidden){if(CL
   try{await au.getRedirectResult(auth)}catch(e){}
   au.onAuthStateChanged(auth,u=>{CLOUD.user=u;if(u)cloudLogin(u);else{CLOUD.ok=false;CLOUD.status='out';renderCloud()}})}
  catch(e){CLOUD.status='nofb';renderCloud()}})();
-const APP_VERSION='2026-11-09b';
+const APP_VERSION='2026-11-09c';
 if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 async function checkUpdate(){try{const r=await fetch('version.json?t='+Date.now(),{cache:'no-store'});const j=await r.json();if(j.v&&j.v!==APP_VERSION){let k='';try{k=sessionStorage.getItem('dq-upd')||''}catch(e){}if(k===j.v)return;try{sessionStorage.setItem('dq-upd',j.v)}catch(e){}if(busy||document.querySelector('.overlay')){setTimeout(checkUpdate,5000);return}save();location.reload()}}catch(e){}}
 setTimeout(checkUpdate,3000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});
@@ -1558,7 +1559,7 @@ const CHAIN_PACKS=[{id:'2026-10-29-cake-chain',name:'起酥蛋糕換晚餐大作
  {title:'把起酥蛋糕拿給奈媽',type:'task',size:'m'},
  {title:'跟奈媽交換到晚餐',type:'task',size:'m',note:'拿蛋糕換一頓晚餐回來'}]}];
 function applyChainPacks(){S.chains=S.chains||[];S.chainPacks=S.chainPacks||[];
- CHAIN_PACKS.forEach(pk=>{if(S.chainPacks.includes(pk.id))return;const ts=pk.steps.map(st=>{const ex=S.tasks.find(t=>t.title===st.title&&!t.chain);if(ex){ex.size=st.size;return ex}const nt=Object.assign({id:uid(),done:false},st);S.tasks.push(nt);return nt});
+ CHAIN_PACKS.forEach(pk=>{if(S.chainPacks.includes(pk.id))return;if(packOld(pk.id)){S.chainPacks.push(pk.id);return}const ts=pk.steps.map(st=>{const ex=S.tasks.find(t=>t.title===st.title&&!t.chain);if(ex){ex.size=st.size;return ex}const nt=Object.assign({id:uid(),done:false},st);S.tasks.push(nt);return nt});
   const first=ts[0];S.tasks=S.tasks.filter(t=>!ts.includes(t));const at=S.tasks.length;S.tasks.splice(at,0,...ts);makeChain(pk.name,ts);S.chainPacks.push(pk.id)});save()}
 applyChainPacks();
 function renderChains(){const box=$('#chainBox');if(!box)return;box.innerHTML='';
@@ -1616,6 +1617,7 @@ function awardChain(c){if(c.done)return null;const pool=LOOT.filter(l=>l.r==='le
 async function runAward(c,makeup){const before=levelInfo(S.xp).lv;const loot=awardChain(c);c.praised=Date.now();save();renderAll();busy=true;await showCeremony(c,loot,makeup);if(levelInfo(S.xp).lv>before)await showLevelUp(before);busy=false;renderAll();unlockCheck()}
 // make-up awards: any chain whose steps are all done but never got its ceremony, plus today's cake chain
 function chainMakeup(){const q=[];S.fixes=S.fixes||[];
+ if(!S.fixes.includes('2026-10-29-cake-praise-2')&&todayStr()>'2026-10-31')S.fixes.push('2026-10-29-cake-praise-2');
  if(!S.fixes.includes('2026-10-29-cake-praise-2')){S.fixes.push('2026-10-29-cake-praise-2');let c=S.chains.find(x=>x.name==='起酥蛋糕換晚餐大作戰');
   if(!c){c={id:uid(),name:'起酥蛋糕換晚餐大作戰',steps:[],titles:['買起酥蛋糕','把起酥蛋糕拿給奈媽','跟奈媽交換到晚餐'],done:false,at:Date.now()};S.chains.push(c)}
   chainSteps(c).forEach(t=>{if(t&&!t.done){t.done=true;t.doneAt=Date.now()}});if(!c.praised)q.push(c);save()}
@@ -1647,7 +1649,7 @@ function showDentist(){return overlay(async(d,close)=>{const ttl=el('div','big-t
 /* ---------- daily alerts (本日提醒): e.g. 浣熊炸毛中 ---------- */
 S.alerts=S.alerts||[];
 const ALERT_PACKS=[{id:'2026-11-09-raccoon',alerts:[{kind:'raccoon',text:'浣熊炸毛中，請小心炸彈',from:'2026-11-09',to:'2026-11-09'}]}];
-function applyAlertPacks(){S.alerts=S.alerts||[];S.alertPacks=S.alertPacks||[];ALERT_PACKS.forEach(pk=>{if(S.alertPacks.includes(pk.id))return;pk.alerts.forEach(a=>S.alerts.push(Object.assign({id:uid()},a)));S.alertPacks.push(pk.id)})}
+function applyAlertPacks(){S.alerts=S.alerts||[];S.alertPacks=S.alertPacks||[];ALERT_PACKS.forEach(pk=>{if(S.alertPacks.includes(pk.id))return;if(packOld(pk.id)){S.alertPacks.push(pk.id);return}pk.alerts.forEach(a=>S.alerts.push(Object.assign({id:uid()},a)));S.alertPacks.push(pk.id)})}
 applyAlertPacks();
 function activeAlerts(){const td=todayStr();return (S.alerts||[]).filter(a=>a.from<=td&&td<=a.to)}
 function drawRaccoon(c,x,y,angry,t){const P={g:'#8f8aa0',w:'#f3eef8',k:'#17121f',d:'#4a4458',r:'#ff6f91'};const rows=["..g..........g..",".ggg........ggg.","gwggggggggggggwg","gggggggggggggggg","gwkkkwggggwkkkwg","gkkwkkggggkkwkkg","gkkkkkggggkkkkkg","ggwwwwwkkwwwwwgg",".ggwwwwrrwwwwgg.","..gggwwwwwwggg..",".gggggggggggggg.","gggggggggggggggg","gggggggggggggggg",".gggggggggggggg.","..gg.gg..gg.gg..","..kk.kk..kk.kk.."];
@@ -1672,6 +1674,13 @@ function parseAlert(line){line=line.replace(/^\s*\d+\s*[\.\)、．]\s*/,'');let 
  if(m){from=dateFromMD(+m[1],+m[2]);to=m[4]?dateFromMD(m[3]?+m[3]:+m[1],+m[4]):from;line=line.slice(m[0].length)}if(to<from)to=from;
  return {id:uid(),kind:/浣熊|炸毛/.test(line)?'raccoon':'raccoon',text:line.trim()||'浣熊炸毛中，請小心炸彈',from,to}}
 function fmtRange(a){const f=d=>{const x=new Date(d+'T00:00:00');return (x.getMonth()+1)+'/'+x.getDate()};return a.from===a.to?f(a.from):f(a.from)+'～'+f(a.to)}
+/* ---------- clean up quests from past packs that were re-added to a fresh save ---------- */
+function cleanupOldPacks(){S.fixes=S.fixes||[];if(S.fixes.includes('2026-11-09-old-packs'))return false;S.fixes.push('2026-11-09-old-packs');
+ const old=new Set();PACKS.forEach(pk=>{if(packOld(pk.id))pk.tasks.forEach(t=>old.add(t.title))});CHAIN_PACKS.forEach(pk=>{if(packOld(pk.id))pk.steps.forEach(t=>old.add(t.title))});
+ const before=S.tasks.length;S.tasks=S.tasks.filter(t=>t.done||!old.has(t.title));const removed=before-S.tasks.length;
+ S.chains=(S.chains||[]).filter(c=>c.done||c.praised||c.steps.some(id=>S.tasks.find(t=>t.id===id)));
+ S.bosses=S.bosses.filter(b=>!(b.name==='緞帶小魔王'&&!b.dead));save();return removed}
+{const r=cleanupOldPacks();if(r){renderAll();setTimeout(()=>toast('已清掉 '+r+' 個以前的舊任務'),1500)}}
 setInterval(renderHUD,30e3);
 renderAll();
 })();
