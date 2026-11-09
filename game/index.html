@@ -553,7 +553,7 @@ textarea.rep{min-height:52px;font-size:15px}
 
   <div class="foot">
     <button class="btn ghost sm" id="soundBtn" type="button">音效：開</button>
-    <span class="ver">版本 2026-11-09a</span>
+    <span class="ver">版本 2026-11-09b</span>
     <button class="btn ghost sm" id="resetBtn" type="button">清空今天已完成的關卡</button>
   </div>
 </div>
@@ -676,7 +676,7 @@ const PACKS=[{id:'2026-10-22-yongle-v3',drop:OLD_V1,tasks:[
 S.packs=S.packs||[];
 const DAILY_DEFAULT=[['清桌上的垃圾','s'],['撿地上的垃圾','s'],['掃地','m'],['洗衣服','m'],['整理冰箱','m'],['丟掉過期食物','s'],['收拾陽台的 5 隻襪子','s'],['餵貓','s',3],['完成一支短影片','l'],['完成一支長影片','l']];
 const DAILY_PACKS=[{id:'2026-10-29-once',items:[{title:'整理廁所、清貓大便',size:'x'},{title:'殺螞蟻',size:'s'}]}];
-const FIXES=[{id:'2026-10-29-sizes',run:()=>{S.tasks.forEach(t=>{if(t.title==='買起酥蛋糕'&&!t.done)t.size='l'});S.daily.forEach(d=>{if(d.title==='整理廁所、清貓大便')d.size='x'})}}];
+const FIXES=[{id:'2026-11-09-somet-demon',run:()=>{S.bosses.forEach(b=>{if(/^Somet短影片/.test(b.name))b.spr='demon'})}},{id:'2026-10-29-sizes',run:()=>{S.tasks.forEach(t=>{if(t.title==='買起酥蛋糕'&&!t.done)t.size='l'});S.daily.forEach(d=>{if(d.title==='整理廁所、清貓大便')d.size='x'})}}];
 function applyFixes(){S.fixes=S.fixes||[];FIXES.forEach(f=>{if(S.fixes.includes(f.id))return;try{f.run()}catch(e){}S.fixes.push(f.id)})}
 function applyDailyPacks(){S.dailyPacks=S.dailyPacks||[];DAILY_PACKS.forEach(pk=>{if(S.dailyPacks.includes(pk.id))return;pk.items.forEach(it=>S.daily.push({id:uid(),title:it.title,size:it.size,times:1,once:true}));S.dailyPacks.push(pk.id)})}
 if(!S.daily)S.daily=DAILY_DEFAULT.map(d=>({id:uid(),title:d[0],size:d[1],times:d[2]||1}));applyDailyPacks();applyFixes();
@@ -685,7 +685,7 @@ S.coupons=S.coupons||[];S.stats=S.stats||{};S.stats.clears=S.stats.clears||0;S.s
 if(!S.bosses)S.bosses=[{id:uid(),name:'短影片史萊姆',spr:'slime',steps:['找素材','剪輯','上字幕','做封面','上傳']},{id:uid(),name:'長影片巨魔',spr:'demon',steps:['寫大綱','粗剪','精剪','上字幕','做封面','上傳']}].map(b=>Object.assign(b,{steps:b.steps.map(t=>({t,done:false})),dead:false,kills:0}));
 save();
 // boss packs: each lands once at the front of his boss list, never touching existing bosses
-const BOSS_PACKS=[{id:'2026-10-22-ribbon',boss:{name:'緞帶小魔王',spr:'ribbon',mini:true,steps:['挑第 1 個顏色','挑第 2 個顏色','挑第 3 個顏色','挑第 4 個顏色','挑白色']}},{id:'2026-11-09-somet2',boss:{name:'Somet短影片 2',spr:'demon',steps:['找素材','剪輯','上字幕','做封面','上傳']}},{id:'2026-11-09-somet1',boss:{name:'Somet短影片 1',spr:'slime',steps:['找素材','剪輯','上字幕','做封面','上傳']}}];
+const BOSS_PACKS=[{id:'2026-10-22-ribbon',boss:{name:'緞帶小魔王',spr:'ribbon',mini:true,steps:['挑第 1 個顏色','挑第 2 個顏色','挑第 3 個顏色','挑第 4 個顏色','挑白色']}},{id:'2026-11-09-somet2',boss:{name:'Somet短影片 2',spr:'demon',steps:['找素材','剪輯','上字幕','做封面','上傳']}},{id:'2026-11-09-somet1',boss:{name:'Somet短影片 1',spr:'demon',steps:['找素材','剪輯','上字幕','做封面','上傳']}}];
 S.bossPacks=S.bossPacks||[];BOSS_PACKS.forEach(pk=>{if(S.bossPacks.includes(pk.id))return;const b=pk.boss;S.bosses.unshift({id:uid(),name:b.name,spr:b.spr,mini:!!b.mini,steps:b.steps.map(t=>({t,done:false})),dead:false,kills:0});S.bossPacks.push(pk.id);save();setTimeout(()=>toast('野生的'+b.name+'出現了！到 Boss 區開打'),3200)});
 function dcount(id){return S.dlog.c[id]||0}
 function logToday(id,xp){S.dlog.loot=S.dlog.loot||{};S.dlog.loot[id]=(S.dlog.loot[id]||0)+1;S.dlog.xp=(S.dlog.xp||0)+(xp||0)}
@@ -1530,7 +1530,7 @@ document.addEventListener('visibilitychange',async()=>{if(document.hidden){if(CL
   try{await au.getRedirectResult(auth)}catch(e){}
   au.onAuthStateChanged(auth,u=>{CLOUD.user=u;if(u)cloudLogin(u);else{CLOUD.ok=false;CLOUD.status='out';renderCloud()}})}
  catch(e){CLOUD.status='nofb';renderCloud()}})();
-const APP_VERSION='2026-11-09a';
+const APP_VERSION='2026-11-09b';
 if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 async function checkUpdate(){try{const r=await fetch('version.json?t='+Date.now(),{cache:'no-store'});const j=await r.json();if(j.v&&j.v!==APP_VERSION){let k='';try{k=sessionStorage.getItem('dq-upd')||''}catch(e){}if(k===j.v)return;try{sessionStorage.setItem('dq-upd',j.v)}catch(e){}if(busy||document.querySelector('.overlay')){setTimeout(checkUpdate,5000);return}save();location.reload()}}catch(e){}}
 setTimeout(checkUpdate,3000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});
