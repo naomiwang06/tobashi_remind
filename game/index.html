@@ -248,6 +248,11 @@ canvas.scene.tap{cursor:pointer;touch-action:none}
 .cert b{font-weight:400;font-size:19px;color:#a0281e}
 .cert small{font-size:11px;color:#7a5a30}
 .chain-list{font-size:14px;color:var(--grass);text-align:left;display:flex;flex-direction:column;gap:2px}
+.alerts{grid-column:1/-1;display:flex;flex-direction:column;gap:6px}
+.alerts:empty{display:none}
+.alert-bar{display:flex;align-items:center;gap:8px;background:#3a1430;border:3px solid var(--berry);padding:6px 8px;animation:blink 1.2s steps(2) 3}
+.alert-bar canvas{width:33px;height:27px;flex:none}
+.alert-bar b{flex:1;min-width:0;font-weight:400;color:var(--berry);font-size:14px}
 .acct{flex-basis:100%;font-size:12px;color:var(--orange)}
 .acct.on{color:var(--grass)}
 .clk-date{font-family:var(--f-zh);font-size:13px;color:var(--sky)}
@@ -409,6 +414,7 @@ textarea.rep{min-height:52px;font-size:15px}
       <div class="stat combo" id="comboBox"><canvas data-sprite="bolt" width="8" height="8"></canvas><div><div class="n" id="comboN">x1</div><div class="k" id="comboK">30 分鐘內連破＝連擊</div></div></div>
     </div>
     <div class="progress" id="progress"></div>
+    <div id="alertBox" class="alerts"></div>
     <div class="cloud-nag" id="cloudNag" hidden><span>雲端存檔還沒開，進度可能會不見</span><button class="btn sm pink" id="cloudNagBtn" type="button">Google 登入</button></div>
     <button class="btn sky report-btn" id="reportBtn" type="button">回報戰況・產生角色卡</button>
     <button class="btn green report-btn" id="spinBtn" type="button" hidden>今日轉盤還沒轉，來轉一下</button>
@@ -471,7 +477,7 @@ textarea.rep{min-height:52px;font-size:15px}
 
   <section class="forge px" aria-labelledby="forgeH">
     <h2 class="h2" id="forgeH"><span>NEW QUEST · 新增任務</span></h2>
-    <label for="taskInput" class="hint">一行一關。寫「去○○」變到點、「買○○」變購買；開頭寫「大：」「小：」可指定份量，寫「一天 3 次」可重複。選 Boss 或連鎖時，第一行寫名字，下面每行是一步。</label>
+    <label for="taskInput" class="hint">一行一關。寫「去○○」變到點、「買○○」變購買；開頭寫「大：」「小：」可指定份量，寫「一天 3 次」可重複。選 Boss 或連鎖時，第一行寫名字，下面每行是一步。選「提醒」時寫「11/20-11/23：浣熊炸毛中，請小心炸彈」。</label>
     <textarea id="taskInput" placeholder="例：&#10;去銀行補摺&#10;買貓砂&#10;回 3 封信"></textarea>
     <div class="opts">
       <div id="dateWrap"><label class="opt-lbl" for="taskDate">日期</label><input type="date" id="taskDate"></div>
@@ -481,6 +487,7 @@ textarea.rep{min-height:52px;font-size:15px}
           <button type="button" data-v="daily" aria-pressed="false">日常</button>
           <button type="button" data-v="once" aria-pressed="false">一次性</button>
           <button type="button" data-v="chain" aria-pressed="false">連鎖</button>
+          <button type="button" data-v="alert" aria-pressed="false">提醒</button>
           <button type="button" data-v="boss" aria-pressed="false">Boss</button>
         </div>
       </div>
@@ -546,7 +553,7 @@ textarea.rep{min-height:52px;font-size:15px}
 
   <div class="foot">
     <button class="btn ghost sm" id="soundBtn" type="button">音效：開</button>
-    <span class="ver">版本 2026-10-29c</span>
+    <span class="ver">版本 2026-11-09a</span>
     <button class="btn ghost sm" id="resetBtn" type="button">清空今天已完成的關卡</button>
   </div>
 </div>
@@ -662,6 +669,9 @@ const PACKS=[{id:'2026-10-22-yongle-v3',drop:OLD_V1,tasks:[
  {title:'買起酥蛋糕',type:'buy',item:'起酥蛋糕',size:'l'},
  {title:'帶奈奈吃午餐',type:'task',size:'m'},
  {title:'把奈的午餐拿回家冰起來',type:'task',size:'s',note:'帶回家後放進冰箱'}
+]},{id:'2026-11-09-special',tasks:[
+ {title:'買漫畫',type:'buy',item:'漫畫',size:'s'},
+ {title:'看牙齒',type:'task',size:'l',dentist:true,note:'看完牙有特別動畫'}
 ]}];
 S.packs=S.packs||[];
 const DAILY_DEFAULT=[['清桌上的垃圾','s'],['撿地上的垃圾','s'],['掃地','m'],['洗衣服','m'],['整理冰箱','m'],['丟掉過期食物','s'],['收拾陽台的 5 隻襪子','s'],['餵貓','s',3],['完成一支短影片','l'],['完成一支長影片','l']];
@@ -675,7 +685,7 @@ S.coupons=S.coupons||[];S.stats=S.stats||{};S.stats.clears=S.stats.clears||0;S.s
 if(!S.bosses)S.bosses=[{id:uid(),name:'短影片史萊姆',spr:'slime',steps:['找素材','剪輯','上字幕','做封面','上傳']},{id:uid(),name:'長影片巨魔',spr:'demon',steps:['寫大綱','粗剪','精剪','上字幕','做封面','上傳']}].map(b=>Object.assign(b,{steps:b.steps.map(t=>({t,done:false})),dead:false,kills:0}));
 save();
 // boss packs: each lands once at the front of his boss list, never touching existing bosses
-const BOSS_PACKS=[{id:'2026-10-22-ribbon',boss:{name:'緞帶小魔王',spr:'ribbon',mini:true,steps:['挑第 1 個顏色','挑第 2 個顏色','挑第 3 個顏色','挑第 4 個顏色','挑白色']}}];
+const BOSS_PACKS=[{id:'2026-10-22-ribbon',boss:{name:'緞帶小魔王',spr:'ribbon',mini:true,steps:['挑第 1 個顏色','挑第 2 個顏色','挑第 3 個顏色','挑第 4 個顏色','挑白色']}},{id:'2026-11-09-somet2',boss:{name:'Somet短影片 2',spr:'demon',steps:['找素材','剪輯','上字幕','做封面','上傳']}},{id:'2026-11-09-somet1',boss:{name:'Somet短影片 1',spr:'slime',steps:['找素材','剪輯','上字幕','做封面','上傳']}}];
 S.bossPacks=S.bossPacks||[];BOSS_PACKS.forEach(pk=>{if(S.bossPacks.includes(pk.id))return;const b=pk.boss;S.bosses.unshift({id:uid(),name:b.name,spr:b.spr,mini:!!b.mini,steps:b.steps.map(t=>({t,done:false})),dead:false,kills:0});S.bossPacks.push(pk.id);save();setTimeout(()=>toast('野生的'+b.name+'出現了！到 Boss 區開打'),3200)});
 function dcount(id){return S.dlog.c[id]||0}
 function logToday(id,xp){S.dlog.loot=S.dlog.loot||{};S.dlog.loot[id]=(S.dlog.loot[id]||0)+1;S.dlog.xp=(S.dlog.xp||0)+(xp||0)}
@@ -771,7 +781,7 @@ function renderDaily(){const box=$('#dailyList');box.innerHTML='';
    const x=el('button','x','移除');x.type='button';x.onclick=()=>{S.daily=S.daily.filter(z=>z.id!==d.id);save();renderAll()};act.append(go,st,x);r.append(act);
    const tb=el('div','timer');tb.hidden=!timers[d.id];tb.appendChild(el('i'));r.append(tb)}
   box.appendChild(r)})}
-function renderAll(){if(typeof renderChains==='function')setTimeout(renderChains,0);if(promoteFuture())setTimeout(()=>toast('今天的預定任務到了，出現在今日特殊'),300);grantTickets();renderFuture();if(S.dlog.day!==todayStr()){S.dlog={day:todayStr(),c:{}};save()}renderHUD();renderStages();renderDaily();renderBosses();renderShop();renderMeals();renderWardrobe();renderSaveInfo();renderWeek();renderTabs();renderBag();$('#soundBtn').textContent='音效：'+(S.sound?'開':'關')}
+function renderAll(){if(typeof renderAlerts==='function')setTimeout(renderAlerts,0);if(typeof renderChains==='function')setTimeout(renderChains,0);if(promoteFuture())setTimeout(()=>toast('今天的預定任務到了，出現在今日特殊'),300);grantTickets();renderFuture();if(S.dlog.day!==todayStr()){S.dlog={day:todayStr(),c:{}};save()}renderHUD();renderStages();renderDaily();renderBosses();renderShop();renderMeals();renderWardrobe();renderSaveInfo();renderWeek();renderTabs();renderBag();$('#soundBtn').textContent='音效：'+(S.sound?'開':'關')}
 
 /* ---------- input ---------- */
 let chosenType='auto',chosenSize='s',chosenTier='special';
@@ -786,6 +796,7 @@ function parse(line){line=line.replace(/^\s*\d+\s*[\.\)、．]\s*/,'');let lineD
  if(/回報/.test(line)){t.report=true;t.ask='回報內容'}return t}
 $('#addBtn').onclick=()=>{const lines=$('#taskInput').value.split(/\n+/).map(s=>s.trim()).filter(Boolean);
  if(!lines.length){toast('先寫一件事就好，一件就能開局');return}
+ if(chosenTier==='alert'){const al=lines.map(parseAlert);al.forEach(a=>S.alerts.push(a));$('#taskInput').value='';save();renderAll();sfx.pick();toast('提醒排好了：'+al.map(a=>fmtRange(a)).join('、'));return}
  if(chosenTier==='chain'){const nm=lines[0].replace(/^\s*\d+\s*[\.\)、．]\s*/,'');const ts=lines.slice(1).map(l=>parse(l));if(ts.length<2){toast('連鎖至少要兩步：第一行寫名字，下面每行一步');return}if(S.tasks.some(t=>t.sample))S.tasks=S.tasks.filter(t=>!t.sample);ts.forEach(t=>{delete t.date;S.tasks.push(t)});makeChain(nm,ts);$('#taskInput').value='';save();renderAll();sfx.pick();toast('連鎖任務「'+nm+'」開好了，全部完成有大獎');return}
  if(chosenTier==='boss'){const steps=lines.slice(1).map(l=>l.replace(/^\s*\d+\s*[\.\)、．]\s*/,'')).filter(Boolean);if(!steps.length){toast('Boss 至少要有一步：第一行名字，下面每行一步');return}
   S.bosses.push({id:uid(),name:lines[0].replace(/^\s*\d+\s*[\.\)、．]\s*/,''),spr:Math.random()<.5?'slime':'demon',steps:steps.map(t=>({t,done:false})),dead:false,kills:0});$('#taskInput').value='';save();renderAll();sfx.hit();toast('野生的 Boss 出現了！');return}
@@ -887,7 +898,7 @@ async function complete(id){if(busy)return;const t=S.tasks.find(x=>x.id===id);if
  const before=levelInfo(S.xp).lv;const td=todayStr();
  if(S.lastActive!==td){const y=new Date();y.setDate(y.getDate()-1);S.streak=S.lastActive===todayStr(y)?S.streak+1:1;S.lastActive=td}
  t.done=true;t.doneAt=now;t.gotXp=xp;S.stats.clears++;S.dlog.clears=(S.dlog.clears||0)+1;wkAdd('clears');S.xp+=xp;S.coins+=coins;S.bag[loot.id]=(S.bag[loot.id]||0)+1;logToday(loot.id,xp);save();
- if(t.type==='place')await sceneArrive(t.place||t.title);else if(t.type==='buy')await sceneBuy(t.item||t.title);
+ if(t.dentist){await showDentist();S.xp+=30;S.stats.dentist=(S.stats.dentist||0)+1;save()}else if(t.type==='place')await sceneArrive(t.place||t.title);else if(t.type==='buy')await sceneBuy(t.item||t.title);
  renderAll();
  await showReward({title:t.title,xp,coins,loot,combo:S.combo,mult,tier:'special'});
  if(levelInfo(S.xp).lv>before)await showLevelUp(before);
@@ -1147,7 +1158,7 @@ function smallScene(kind){return overlay((d,close)=>{const later=kind==='later';
 // preview panel: open the page with #cats to try every cat scene (only affects this device's save)
 if(location.hash==='#cats'){const pn=el('section','shop px');pn.id='catsPanel';pn.append(el('h2','h2'));pn.firstChild.append(el('span',null,'CAT TEST · 擼貓動畫試玩'));pn.append(el('div','hint','只影響這支手機的存檔'));const r=el('div','row');
  [['sun','曬太陽'],['room','房間'],['box','倉庫'],['basket','少見：洗衣籃'],['keys','少見：鍵盤'],['socks','少見：襪子堆'],['video','稀有：看影片'],['demon','極稀有：惡魔']].forEach(([k,n])=>{const b=el('button','btn sm',n);b.type='button';b.onclick=()=>{if(!busy)showPet(k)};r.append(b)});
- const g=el('button','btn sm ghost','臭臉等待');g.type='button';g.onclick=()=>smallScene('later');const m=el('button','btn sm ghost','找不到貓貓');m.type='button';m.onclick=()=>smallScene('miss');const hg=el('button','btn sm ghost','肚子餓提醒');hg.type='button';hg.onclick=()=>{if(!busy)showHungry(MEALS[1])};const hp=el('button','btn sm pink','貓咪吃飽');hp.type='button';hp.onclick=()=>{if(!busy)showCatHappy()};r.append(hp);const rg=el('button','btn sm pink','貓咪拆家');rg.type='button';rg.onclick=()=>{if(!busy)showCatRage(5)};r.append(g,m,hg,rg);[['water','喝水'],['move','動一動'],['wrist','轉手腕'],['eyes','護眼'],['meteor','流星'],['rain','金幣雨']].forEach(([k,n])=>{const b=el('button','btn sm sky',n);b.type='button';b.onclick=()=>{if(busy)return;if(WELL[k])showWell(k);else showFun(k)};r.append(b)});pn.append(r);document.querySelector('.wrap').insertBefore(pn,document.querySelector('.hud').nextSibling)}
+ const g=el('button','btn sm ghost','臭臉等待');g.type='button';g.onclick=()=>smallScene('later');const m=el('button','btn sm ghost','找不到貓貓');m.type='button';m.onclick=()=>smallScene('miss');const hg=el('button','btn sm ghost','肚子餓提醒');hg.type='button';hg.onclick=()=>{if(!busy)showHungry(MEALS[1])};const hp=el('button','btn sm pink','貓咪吃飽');hp.type='button';hp.onclick=()=>{if(!busy)showCatHappy()};r.append(hp);const dn=el('button','btn sm sky','看牙動畫');dn.type='button';dn.onclick=()=>{if(!busy)showDentist()};const rc=el('button','btn sm pink','浣熊炸毛');rc.type='button';rc.onclick=()=>{if(!busy)showRaccoon({text:'浣熊炸毛中，請小心炸彈'})};r.append(dn,rc);const rg=el('button','btn sm pink','貓咪拆家');rg.type='button';rg.onclick=()=>{if(!busy)showCatRage(5)};r.append(g,m,hg,rg);[['water','喝水'],['move','動一動'],['wrist','轉手腕'],['eyes','護眼'],['meteor','流星'],['rain','金幣雨']].forEach(([k,n])=>{const b=el('button','btn sm sky',n);b.type='button';b.onclick=()=>{if(busy)return;if(WELL[k])showWell(k);else showFun(k)};r.append(b)});pn.append(r);document.querySelector('.wrap').insertBefore(pn,document.querySelector('.hud').nextSibling)}
 schedulePet();
 
 /* ---------- collection: badges, snack sets, daily spin ---------- */
@@ -1421,13 +1432,15 @@ function packDecode(s){const m=(s||'').match(/DQP1:([A-Za-z0-9+/=\s]+)/);if(!m)t
 const NUM_RE=/^\s*\d+\s*[\.\)、．]\s*/;
 $('#packMake').onclick=()=>{const lines=$('#taskInput').value.split(/\n+/).map(s=>s.trim()).filter(Boolean);if(!lines.length){toast('先在上面寫任務，一行一個');return}
  const pack={id:uid()+uid(),tier:chosenTier,at:Date.now()};
- if(chosenTier==='chain'){const steps=lines.slice(1).map(l=>{const t=parse(l);delete t.id;delete t.done;delete t.date;return t});if(steps.length<2){toast('連鎖至少要兩步：第一行寫名字，下面每行一步');return}pack.chain={name:lines[0].replace(NUM_RE,''),steps}}
+ if(chosenTier==='alert'){pack.alerts=lines.map(parseAlert).map(a=>{delete a.id;return a})}
+ else if(chosenTier==='chain'){const steps=lines.slice(1).map(l=>{const t=parse(l);delete t.id;delete t.done;delete t.date;return t});if(steps.length<2){toast('連鎖至少要兩步：第一行寫名字，下面每行一步');return}pack.chain={name:lines[0].replace(NUM_RE,''),steps}}
  else if(chosenTier==='boss'){const steps=lines.slice(1).map(l=>l.replace(NUM_RE,'')).filter(Boolean);if(!steps.length){toast('Boss 至少要有一步：第一行名字，下面每行一步');return}pack.boss={name:lines[0].replace(NUM_RE,''),steps}}
  else pack.items=lines.map(l=>{const t=parse(l);delete t.id;delete t.done;return t});
  const code=packEncode(pack);let out=$('#packOut');if(!out){out=el('pre');out.id='packOut';$('#addBtn').parentNode.after(out)}out.textContent=code;copyText(code,out);toast('任務包代碼已複製，傳給對方貼到「收藏」分頁的任務包代碼')};
 $('#packImport').onclick=async()=>{if(busy)return;let p;try{p=packDecode($('#packInput').value)}catch(e){toast('這不是有效的任務包代碼，確認有完整複製');return}
  S.packsIn=S.packsIn||[];if(S.packsIn.includes(p.id)){toast('這個任務包已經收過了');return}S.packsIn.push(p.id);let n=0,desc='';
- if(p.tier==='chain'&&p.chain){const ts=p.chain.steps.map(t=>Object.assign({},t,{id:uid(),done:false,fromPack:true}));ts.forEach(t=>S.tasks.push(t));makeChain(p.chain.name,ts);desc='連鎖任務：'+p.chain.name}
+ if(p.tier==='alert'&&p.alerts){p.alerts.forEach(a=>S.alerts.push(Object.assign({id:uid()},a)));desc='本日提醒：'+p.alerts.map(a=>a.text+'（'+fmtRange(a)+'）').join('、')}
+ else if(p.tier==='chain'&&p.chain){const ts=p.chain.steps.map(t=>Object.assign({},t,{id:uid(),done:false,fromPack:true}));ts.forEach(t=>S.tasks.push(t));makeChain(p.chain.name,ts);desc='連鎖任務：'+p.chain.name}
  else if(p.tier==='boss'&&p.boss){S.bosses.unshift({id:uid(),name:p.boss.name,spr:Math.random()<.5?'slime':'demon',steps:p.boss.steps.map(t=>({t,done:false})),dead:false,kills:0});desc='Boss：'+p.boss.name}
  else if(p.tier==='daily'||p.tier==='once'){(p.items||[]).forEach(t=>{S.daily.push({id:uid(),title:t.title,size:t.size||'s',times:t.times||1,once:p.tier==='once'});n++});desc=n+' 個'+(p.tier==='once'?'一次性':'日常')+'任務'}
  else{let fn=0;(p.items||[]).forEach(t=>{const nt=Object.assign({},t,{id:uid(),done:false,fromPack:true});if(nt.date&&nt.date>todayStr()){S.future.push(nt);fn++}else S.tasks.push(nt);n++});desc=n+' 個特殊任務'+(fn?'（其中 '+fn+' 個是之後日子的預定任務）':'')}
@@ -1500,7 +1513,7 @@ function adoptState(o){Object.keys(S).forEach(k=>delete S[k]);Object.assign(S,o)
  if(S.day!==todayStr()){S.tasks=(S.tasks||[]).filter(t=>!t.done).map(t=>Object.assign(t,{carry:true}));S.day=todayStr();S.combo=0}
  S.tasks=S.tasks||[];S.daily=S.daily||[];S.bag=S.bag||{};S.bosses=S.bosses||[];if(!S.dlog||S.dlog.day!==todayStr())S.dlog={day:todayStr(),c:{}};
  S.coupons=S.coupons||[];S.jar=S.jar||{amt:0,done:0};S.stats=Object.assign({clears:0,starts:0,allClears:0,feedDays:[],mealDays:[]},S.stats||{});S.badges=S.badges||{};S.sets=S.sets||{};S.catDex=S.catDex||{};
- S.gacha=Object.assign({tickets:0,lvT:0,owned:{},skin:'',acc:''},S.gacha||{});S.future=S.future||[];applyPacks();if(typeof applyChainPacks==='function')applyChainPacks();promoteFuture();
+ S.gacha=Object.assign({tickets:0,lvT:0,owned:{},skin:'',acc:''},S.gacha||{});S.future=S.future||[];applyPacks();if(typeof applyAlertPacks==='function')applyAlertPacks();if(typeof applyChainPacks==='function')applyChainPacks();promoteFuture();
  try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}idbSet(JSON.stringify(S));paintHero(false);renderAll()}
 async function cloudRead(u){const snap=await FB.get(FB.ref(FB.db,CLOUD_PATH+u.uid));if(!snap.exists())return null;try{const o=JSON.parse(snap.val().json);return o&&typeof o.xp==='number'?o:null}catch(e){return null}}
 async function cloudLogin(u){CLOUD.status='checking';renderCloud();let cs=null;try{cs=await cloudRead(u)}catch(e){CLOUD.status=permErr(e)?'denied':'error';renderCloud();return}
@@ -1517,7 +1530,7 @@ document.addEventListener('visibilitychange',async()=>{if(document.hidden){if(CL
   try{await au.getRedirectResult(auth)}catch(e){}
   au.onAuthStateChanged(auth,u=>{CLOUD.user=u;if(u)cloudLogin(u);else{CLOUD.ok=false;CLOUD.status='out';renderCloud()}})}
  catch(e){CLOUD.status='nofb';renderCloud()}})();
-const APP_VERSION='2026-10-29c';
+const APP_VERSION='2026-11-09a';
 if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 async function checkUpdate(){try{const r=await fetch('version.json?t='+Date.now(),{cache:'no-store'});const j=await r.json();if(j.v&&j.v!==APP_VERSION){let k='';try{k=sessionStorage.getItem('dq-upd')||''}catch(e){}if(k===j.v)return;try{sessionStorage.setItem('dq-upd',j.v)}catch(e){}if(busy||document.querySelector('.overlay')){setTimeout(checkUpdate,5000);return}save();location.reload()}}catch(e){}}
 setTimeout(checkUpdate,3000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});
@@ -1528,7 +1541,7 @@ function dateFromMD(m,d){const now=new Date();let y=now.getFullYear();const t=ne
 function fmtFutDate(ds){const d=new Date(ds+'T00:00:00');const diff=Math.round((d-new Date(todayStr()+'T00:00:00'))/864e5);return (d.getMonth()+1)+'/'+d.getDate()+'（'+'日一二三四五六'[d.getDay()]+'）'+(diff===1?'・明天':diff===2?'・後天':'・'+diff+' 天後')}
 function renderFuture(){const sec=$('#futSec');if(!sec)return;const list=$('#futList');list.innerHTML='';const f=(S.future||[]).slice().sort((a,b)=>a.date<b.date?-1:1);sec.hidden=!f.length;const groups={};f.forEach(t=>{(groups[t.date]=groups[t.date]||[]).push(t)});
  Object.keys(groups).forEach(ds=>{const box=el('div','fut-day px');box.append(el('b',null,fmtFutDate(ds)));groups[ds].forEach(t=>{const r=el('div','fut-row');r.append(el('span',null,t.title),el('span','tag '+t.type,TYPE[t.type].label));const x=el('button','x','移除');x.type='button';x.onclick=()=>armed(x,'再按一次移除',()=>{S.future=S.future.filter(z=>z.id!==t.id);save();renderAll()});r.append(x);box.append(r)});list.append(box)})}
-(function(){const inp=$('#taskDate');if(inp){inp.value=todayStr();inp.min=todayStr()}const sync=()=>{const w=$('#dateWrap');if(w)w.hidden=chosenTier!=='special'};document.getElementById('tierSeg').addEventListener('click',()=>setTimeout(sync,0));sync()})();
+(function(){const inp=$('#taskDate');if(inp){inp.value=todayStr();inp.min=todayStr()}const sync=()=>{const w=$('#dateWrap');if(w)w.hidden=chosenTier!=='special'&&chosenTier!=='alert'};document.getElementById('tierSeg').addEventListener('click',()=>setTimeout(sync,0));sync()})();
 
 /* ---------- event pacing: at most one random pop-up every 8 minutes ---------- */
 var EV={last:0};function evOk(){return Date.now()-EV.last>8*60e3}function evMark(){EV.last=Date.now()}
@@ -1617,6 +1630,48 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden&&S.chains&
 BADGES.push(['chain1','連鎖達人','完成第一個連鎖任務',()=>(S.stats.chains||0)>0]);
 chainMakeup();
 
+/* ---------- dentist scene ---------- */
+function drawDentist(c,t,fx){c.fillStyle='#dff1f7';c.fillRect(0,0,160,90);c.fillStyle='#bfe0ea';for(let x=0;x<160;x+=16)c.fillRect(x,0,8,64);c.fillStyle='#9ad3c4';c.fillRect(0,64,160,26);c.fillStyle='#110b24';c.fillRect(0,64,160,1);
+ c.fillStyle='#110b24';c.fillRect(46,40,62,10);c.fillStyle='#7cc8ff';c.fillRect(47,41,60,8);c.fillStyle='#110b24';c.fillRect(100,28,10,22);c.fillStyle='#7cc8ff';c.fillRect(101,29,8,20);c.fillStyle='#110b24';c.fillRect(74,50,6,14);c.fillRect(64,62,26,3);
+ c.fillStyle='#110b24';c.fillRect(70,6,2,14);c.fillRect(60,4,22,6);c.fillStyle='#fff2b0';c.fillRect(61,5,20,4);c.globalAlpha=.25;c.fillStyle='#fff2b0';c.beginPath();c.moveTo(62,9);c.lineTo(80,9);c.lineTo(96,40);c.lineTo(50,40);c.fill();c.globalAlpha=1;
+ const ph=t<1.2?0:t<3.4?1:2;
+ if(ph<2){drawHeroLook(c,'hero',84,26,1,heroLook());if(ph===1){const sh=Math.floor(t*20)%2;c.fillStyle='#110b24';c.fillRect(70+sh,28,14,3);c.fillStyle='#d6dfee';c.fillRect(70+sh,29,12,1);c.fillStyle='#fff';c.fillRect(84+sh,29,2,1);if(Math.floor(t*6)%2)T(c,'嗡嗡嗡',34,18,FZ,8,'#ff6f91');c.fillStyle='#7cc8ff';c.fillRect(102,24+Math.floor((t*30)%6),1,2)}else T(c,'張開嘴巴～',30,18,FZ,8,'#110b24')}
+ else{drawHeroLook(c,'heroHappy',84,24-Math.round(Math.abs(Math.sin(t*6))*3),1,heroLook());const k=Math.min(1,(t-3.4)/.4);const tx=36,ty=Math.round(36-k*12);c.fillStyle='#110b24';c.fillRect(tx-1,ty-1,14,15);c.fillStyle='#fff8e7';c.fillRect(tx,ty,12,9);c.fillRect(tx,ty+9,4,4);c.fillRect(tx+8,ty+9,4,4);c.fillStyle='#ff8fa3';c.fillRect(tx+2,ty+3,2,1);c.fillRect(tx+8,ty+3,2,1);c.fillStyle='#110b24';c.fillRect(tx+3,ty+2,1,1);c.fillRect(tx+8,ty+2,1,1);c.fillRect(tx+5,ty+5,2,1);
+  for(let i=0;i<6;i++){if((Math.floor(t*6)+i)%3)continue;const a=i*1.05+t*2,sx=Math.round(tx+6+Math.cos(a)*12),sy=Math.round(ty+6+Math.sin(a)*10);c.fillStyle='#ffc94a';c.fillRect(sx-1,sy,3,1);c.fillRect(sx,sy-1,1,3)}T(c,'亮晶晶！',58,8,FZ,9,'#c2445f')}}
+function showDentist(){return overlay(async(d,close)=>{const ttl=el('div','big-title sky','看牙醫中…');d.append(ttl);const cv=el('canvas','scene');cv.width=160;cv.height=90;d.append(cv);const ctx=cv.getContext('2d');const say=el('div','scene-text','躺好、張開嘴巴，勇敢的土撥鼠不怕！');d.append(say);let done=false;const t0=performance.now();
+ (function loop(now){if(done)return;drawDentist(ctx,(now-t0)/1000);requestAnimationFrame(loop)})(t0);
+ setTimeout(()=>{for(let i=0;i<14;i++)tone(i%2?1180:1240,.14,i*.15,'sawtooth',.018);buzz([40,40,40,40,40,40,40,40])},reduce?0:1200);
+ await wait(reduce?300:3400);ttl.textContent='勇敢看完牙了！';ttl.className='big-title ult';say.textContent='牙齒亮晶晶，獲得「勇敢牙齒勳章」・額外 +30 XP';sfx.level();burst(110,'coin');buzz([60,40,60,40,150]);
+ const b=el('button','btn big pink','我超勇敢 ▶');b.type='button';b.onclick=()=>{done=true;close()};d.append(b);b.focus()})}
+
+/* ---------- daily alerts (本日提醒): e.g. 浣熊炸毛中 ---------- */
+S.alerts=S.alerts||[];
+const ALERT_PACKS=[{id:'2026-11-09-raccoon',alerts:[{kind:'raccoon',text:'浣熊炸毛中，請小心炸彈',from:'2026-11-09',to:'2026-11-09'}]}];
+function applyAlertPacks(){S.alerts=S.alerts||[];S.alertPacks=S.alertPacks||[];ALERT_PACKS.forEach(pk=>{if(S.alertPacks.includes(pk.id))return;pk.alerts.forEach(a=>S.alerts.push(Object.assign({id:uid()},a)));S.alertPacks.push(pk.id)})}
+applyAlertPacks();
+function activeAlerts(){const td=todayStr();return (S.alerts||[]).filter(a=>a.from<=td&&td<=a.to)}
+function drawRaccoon(c,x,y,angry,t){const P={g:'#8f8aa0',w:'#f3eef8',k:'#17121f',d:'#4a4458',r:'#ff6f91'};const rows=["..g..........g..",".ggg........ggg.","gwggggggggggggwg","gggggggggggggggg","gwkkkwggggwkkkwg","gkkwkkggggkkwkkg","gkkkkkggggkkkkkg","ggwwwwwkkwwwwwgg",".ggwwwwrrwwwwgg.","..gggwwwwwwggg..",".gggggggggggggg.","gggggggggggggggg","gggggggggggggggg",".gggggggggggggg.","..gg.gg..gg.gg..","..kk.kk..kk.kk.."];
+ rows.forEach((r,j)=>{for(let i=0;i<r.length;i++){const ch=r[i];if(ch==='.')continue;c.fillStyle=P[ch];c.fillRect(x+i,y+j,1,1)}});
+ for(let i=0;i<5;i++){c.fillStyle=i%2?P.k:P.g;c.fillRect(x+16,y+6+i*2,4,2)}
+ if(angry){const s=Math.floor(t*8)%2;c.fillStyle=P.g;[[-2,3],[-3,7],[-2,11],[18,2],[19,10],[3,-2],[8,-3],[12,-2]].forEach(([a,b])=>{c.fillRect(x+a+(s?1:0),y+b,2,2)});c.fillStyle=P.k;c.fillRect(x+3,y+3,4,1);c.fillRect(x+9,y+3,4,1);c.fillStyle='#ff3b4f';c.fillRect(x+14,y-3,1,3);c.fillRect(x+13,y-2,3,1)}}
+function bomb(c,x,y,t){c.fillStyle='#110b24';c.beginPath();c.arc(x,y,4.5,0,Math.PI*2);c.fill();c.fillStyle='#3a2e63';c.fillRect(x-2,y-3,2,2);c.fillStyle='#b07a45';c.fillRect(x+2,y-6,1,3);c.fillStyle=Math.floor(t*10)%2?'#ffc94a':'#ff6f91';c.fillRect(x+2,y-8,2,2)}
+function drawRaccoonScene(c,t){c.fillStyle='#2a1426';c.fillRect(0,0,160,90);c.fillStyle='#d9a066';c.fillRect(0,66,160,24);c.fillStyle='#110b24';c.fillRect(0,66,160,1);
+ const sh=Math.floor(t*14)%2;drawRaccoon(c,72+(sh?1:-1),50,true,t);
+ for(let i=0;i<4;i++){const ph=(t*.8+i*.25)%1;const bx=Math.round(80+(i-1.5)*34*ph),by=Math.round(54-Math.sin(ph*Math.PI)*36);bomb(c,bx,by,t)}
+ if(Math.floor(t*3)%2)T(c,'嘶——！',96,38,FZ,9,'#ff6f91');const hx=Math.round(10+Math.abs(Math.sin(t*1.2))*8);drawHeroLook(c,'hero',hx,50,1,heroLook());T(c,'!!',hx+4,36,FP,7,'#ffc94a')}
+function showRaccoon(a){return overlay((d,close)=>{d.append(el('div','big-title pink','⚠ 本日警報 ⚠'));const cv=el('canvas','scene');cv.width=160;cv.height=90;d.append(cv);const ctx=cv.getContext('2d');d.append(el('div','scene-text',a.text),el('div','cheer','今天說話溫柔一點、多遞零食、不要踩到地雷'));let done=false;
+ const b=el('button','btn big pink','收到，我會小心');b.type='button';b.onclick=()=>{done=true;close()};d.append(b);[220,0,220,0,165].forEach((f,i)=>f&&tone(f,.18,i*.18,'square',.06));buzz([100,80,100,80,100]);
+ const t0=performance.now();(function loop(now){if(done)return;drawRaccoonScene(ctx,(now-t0)/1000);requestAnimationFrame(loop)})(t0);b.focus()})}
+function renderAlerts(){const box=$('#alertBox');if(!box)return;box.innerHTML='';activeAlerts().forEach(a=>{const r=el('div','alert-bar');const cv=document.createElement('canvas');cv.width=22;cv.height=18;drawRaccoon(cv.getContext('2d'),1,1,true,0);r.append(cv,el('b',null,a.text));const v=el('button','btn sm pink','看警報');v.type='button';v.onclick=()=>{if(!busy)showRaccoon(a)};r.append(v);box.append(r)})}
+function alertOnOpen(){const td=todayStr();S.dlog.alertSeen=S.dlog.alertSeen||{};const a=activeAlerts().find(x=>!S.dlog.alertSeen[x.id]);if(!a)return;let n=0;const go=()=>{if(busy||document.querySelector('.overlay')){if(++n<120)setTimeout(go,1000);return}S.dlog.alertSeen[a.id]=1;save();evMark&&evMark();busy=true;showRaccoon(a).then(()=>{busy=false})};setTimeout(go,1800)}
+alertOnOpen();
+
+BADGES.push(['dentist','勇敢牙齒勳章','勇敢去看牙醫',()=>(S.stats.dentist||0)>0]);
+function parseAlert(line){line=line.replace(/^\s*\d+\s*[\.\)、．]\s*/,'');let from=($('#taskDate')||{}).value||todayStr(),to=from;
+ const m=line.match(/^\s*(\d{1,2})\s*[\/／]\s*(\d{1,2})(?:\s*[-~～到至]\s*(?:(\d{1,2})\s*[\/／]\s*)?(\d{1,2}))?\s*[：:]?\s*/);
+ if(m){from=dateFromMD(+m[1],+m[2]);to=m[4]?dateFromMD(m[3]?+m[3]:+m[1],+m[4]):from;line=line.slice(m[0].length)}if(to<from)to=from;
+ return {id:uid(),kind:/浣熊|炸毛/.test(line)?'raccoon':'raccoon',text:line.trim()||'浣熊炸毛中，請小心炸彈',from,to}}
+function fmtRange(a){const f=d=>{const x=new Date(d+'T00:00:00');return (x.getMonth()+1)+'/'+x.getDate()};return a.from===a.to?f(a.from):f(a.from)+'～'+f(a.to)}
 setInterval(renderHUD,30e3);
 renderAll();
 })();
